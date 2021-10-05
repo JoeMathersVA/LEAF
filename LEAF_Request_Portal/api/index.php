@@ -14,6 +14,7 @@ include '../globals.php';
 include '../Login.php';
 include '../db_mysql.php';
 include '../db_config.php';
+//include '../db_cdw_sqlsrv.php';
 require 'RESTfulResponse.php';
 require '../sources/Exception.php';
 require 'ControllerMap.php';
@@ -23,6 +24,7 @@ $config = new Config();
 
 $db = new DB($db_config->dbHost, $db_config->dbUser, $db_config->dbPass, $db_config->dbName);
 $db_phonebook = new DB($config->phonedbHost, $config->phonedbUser, $config->phonedbPass, $config->phonedbName);
+//$cdw_db = new DB_CDW('');
 unset($db_config);
 
 $login = new Login($db_phonebook, $db);
@@ -140,6 +142,12 @@ $controllerMap->register('system', function () use ($db, $login, $action) {
     require 'controllers/SystemController.php';
     $SystemController = new SystemController($db, $login);
     $SystemController->handler($action);
+});
+
+$controllerMap->register('cdw', function () use ($db, $login, $action) {
+    require 'controllers/CDWdataController.php';
+    $CDWController = new CDWdataController($db, $login);
+    $CDWController->handler($action);
 });
 
 $controllerMap->register('converter', function () use ($db, $login, $action) {

@@ -34,7 +34,7 @@ class DB_CDW
     {
         $this->dbHost = getenv('CDW_HOST', true);
         $this->dbUser = getenv('CDW_USER', true);
-        $this->dbPass = genenv('CDW_PASS', true);
+        $this->dbPass = getenv('CDW_PASSWORD', true);
         $this->dbName = $database;
 
         $this->isConnected = true;
