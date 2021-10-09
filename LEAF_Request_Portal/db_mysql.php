@@ -51,13 +51,15 @@ class DB
         {
             trigger_error('DB conn: ' . $e->getMessage());
             if(!$abortOnError) {
-                echo '<div style="background-color: white; line-height: 200%; position: absolute; top: 50%; height: 200px; width: 750px; margin-top: -100px; left: 20%; font-size: 200%"><img src="../libs/dynicons/?img=edit-clear.svg&w=96" alt="Server Maintenance" style="float: left" /> Database connection error.<br />Please try again in 15 minutes.</div>';
+                echo '<script>var min=5,max=10,timeWait=Math.ceil(Math.random()*(max-min))+min;function tryAgain(){timeWait--;let t=document.querySelector("#tryAgain");t.innerHTML="Loading in "+timeWait+" seconds...",t.style.pointerEvents="none",setTimeout(function(){timeWait>1?tryAgain():location.reload()},1e3)}</script>';
+                echo '<div style="background-color: white; font-family: \'Source Sans Pro\', helvetica;line-height: 200%; position: absolute; top: 50%; height: 200px; width: 750px; margin-top: -100px; left: 20%; font-size: 200%">⛈️ We are experiencing heavy database traffic<p style="margin-left: 54px">Please come back at your next convenience</p><button id="tryAgain" onclick="tryAgain()" style="font-size: 14pt; padding: 8px; margin-left: 54px">Try again now</button></div>';
                 echo '<!-- Database Error: ' . $e->getMessage() . ' -->';
                 http_response_code(503);
                 exit();
             }
             $this->isConnected = false;
         }
+        // $this->checkLastModified();
         unset($pass);
     }
 
@@ -88,6 +90,8 @@ class DB
             echo '<hr />';
             echo "</pre><br />Time: {$this->time} sec<br />";
         }
+        $this->db->query('KILL CONNECTION_ID()');
+        $this->db = null;
     }
 
     // Log errors from the database
@@ -289,5 +293,25 @@ class DB
     public function enableDryRun()
     {
         $this->dryRun = true;
+    }
+
+    private function checkLastModified() {
+        //get the last build time
+        $defaultTime = "Thur, January 1, 1970 00:00:00 GMT";
+        $lastBuildTime = getenv('LAST_BUILD_DATE', true) ? getenv('LAST_BUILD_DATE') : $defaultTime;
+
+        // set last-modified header
+        // header('Cache-Control: no-cache, must-revalidate');
+        header('Last-Modified: ' . $lastBuildTime );
+
+        // Check if last build time is exactly the same (if so, use cache)
+        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+            if ($lastBuildTime === $_SERVER['HTTP_IF_MODIFIED_SINCE']) {
+                http_response_code(304);
+                header('X-MODIFIED-SINCE: MATCH');
+                die();
+            }
+        }
+        header('X-CONTENT-RETURN: YES');
     }
 }

@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 ###########################
 ###########################
 ## Linter GitHub Actions ##
@@ -15,6 +16,11 @@ name: Lint Code Base
 #############################
 # Start the job on all push #
 #############################
+=======
+  
+name: Lint Code Base
+
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
 on:
   push:
     branches-ignore: [master]
@@ -22,6 +28,7 @@ on:
   pull_request:
     branches: [master]
 
+<<<<<<< HEAD
 ###############
 # Set the Job #
 ###############
@@ -49,6 +56,19 @@ jobs:
       ################################
       # Run Linter against code base #
       ################################
+=======
+jobs:
+  build:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
       - name: Lint Code Base
         uses: github/super-linter@v4
         env:

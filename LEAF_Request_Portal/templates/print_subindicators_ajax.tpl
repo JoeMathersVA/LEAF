@@ -94,8 +94,6 @@
             <span class="printResponse" id="data_<!--{$indicator.indicatorID}-->_<!--{$indicator.series}-->">
                 <!--{if is_numeric($indicator.value)}-->
                     $<!--{$indicator.value|number_format:2:".":","}-->
-                <!--{else}-->
-
                 <!--{/if}-->
             </span>
             <!--{$indicator.htmlPrint}-->
@@ -139,8 +137,12 @@
             <!--{if $indicator.value[0] != ''}-->
             <!--{assign var='idx' value=0}-->
             <!--{foreach from=$indicator.value item=file}-->
-            <img src="image.php?form=<!--{$recordID}-->&amp;id=<!--{$indicator.indicatorID}-->&amp;series=<!--{$indicator.series}-->&amp;file=<!--{$idx}-->" style="max-width: 200px" onclick="window.open('image.php?form=<!--{$recordID}-->&amp;id=<!--{$indicator.indicatorID}-->&amp;series=<!--{$indicator.series}-->&amp;file=<!--{$idx}-->', 'newName', 'width=550', 'height=550'); return false;" />
-            <!--{assign var='idx' value=$idx+1}-->
+                <!--{if $indicator.value != '[protected data]'}-->
+                <img src="image.php?form=<!--{$recordID}-->&amp;id=<!--{$indicator.indicatorID}-->&amp;series=<!--{$indicator.series}-->&amp;file=<!--{$idx}-->" style="max-width: 200px" onclick="window.open('image.php?form=<!--{$recordID}-->&amp;id=<!--{$indicator.indicatorID}-->&amp;series=<!--{$indicator.series}-->&amp;file=<!--{$idx}-->', 'newName', 'width=550', 'height=550'); return false;" />
+                <!--{assign var='idx' value=$idx+1}-->
+                <!--{else}-->
+                [protected data]
+                <!--{/if}-->
             <!--{/foreach}-->
             <!--{else}-->
             No image available.

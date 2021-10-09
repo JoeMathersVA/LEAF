@@ -24,6 +24,7 @@ libs/qrcode/cache/*.png
 LEAF_Nexus/UPLOADS
 LEAF_Request_Portal/UPLOADS
 
+<<<<<<< HEAD
 libs/dynicons/cache/*.svg
 */templates_c/*.tpl.php
 */admin/templates_c/*.tpl.php
@@ -34,3 +35,6 @@ libs/dynicons/cache/*.svg
 # config.php
 # LEAF_Nexus/globals.php
 # LEAF_Request_Portal/globals.php
+=======
+/LEAF_Request_Portal/templates_c/mailer/
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193

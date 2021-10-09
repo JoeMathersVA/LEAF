@@ -66,11 +66,34 @@ class Email
     /**
      * Checks for custom templates and returns the filepath if so. Otherwise returns the regular filepath.
      * @param string $tpl the filename of the template
+     * @param string $type the type of template
      * @return string The filepath of the template passed
      */
-    function getFilepath($tpl)
+    function getFilepath($tpl, $type = '')
     {
-        return file_exists(__DIR__ . "/templates/email/custom_override/{$tpl}") ? "custom_override/{$tpl}" : "{$tpl}";
+        if ($type === 'body') {
+            if (file_exists(__DIR__ . "/templates/email/custom_override/{$tpl}")) {
+                return "custom_override/{$tpl}";
+            } else if (preg_match('/CustomEvent_/', $tpl)) {
+                return "base_templates/LEAF_template_body.tpl";
+            } else {
+                return "{$tpl}";
+            }
+        } else if ($type === 'subject') {
+            if (file_exists(__DIR__ . "/templates/email/custom_override/{$tpl}")) {
+                return "custom_override/{$tpl}";
+            } else if (preg_match('/CustomEvent_/', $tpl)) {
+                return "base_templates/LEAF_template_subject.tpl";
+            } else {
+                return "{$tpl}";
+            }
+        } else {
+            if (file_exists(__DIR__ . "/templates/email/custom_override/{$tpl}")) {
+                return "custom_override/{$tpl}";
+            } else {
+                return "{$tpl}";
+            }
+        }
     }
 
     /**
@@ -142,10 +165,11 @@ class Email
             // Check that email address is active in Nexus
             $vars = array(':emailAddress' => $address);
             $strSQL = "SELECT e.deleted FROM employee as e ".
-                        "INNER JOIN employee_data ed on e.empUID = ed.empUID ".
-                        "WHERE e.deleted = 0 ".
-                        "AND ed.data=:emailAddress";
+                "INNER JOIN employee_data ed on e.empUID = ed.empUID ".
+                "WHERE e.deleted = 0 ".
+                "AND ed.data=:emailAddress";
             $res = $this->nexus_db->prepared_query($strSQL, $vars);
+
             return ( (!empty($res)) ? true : false );
         }
         return false;
@@ -206,9 +230,10 @@ class Email
 
         $vars = array(':groupID' => $groupID);
         $strSQL = "SELECT `userID` FROM `users` ".
-                    "WHERE groupID=:groupID ".
-                    "AND active=1";
+            "WHERE groupID=:groupID ".
+            "AND active=1";
         $res = $this->portal_db->prepared_query($strSQL, $vars);
+
         foreach($res as $user) {
             $tmp = $dir->lookupLogin($user['userID']);
             $this->addRecipient($tmp[0]['Email']);
@@ -411,6 +436,21 @@ class Email
     }
 
     /**
+     * Gets templated ID by label name
+     * @param string $emailTemplateLabel email template name
+     * @return int Email template ID number
+     */
+    function getTemplateIDByLabel($emailTemplateLabel)
+    {
+        $vars = array(':emailTemplateLabel' => $emailTemplateLabel);
+        $strSQL = "SELECT `emailTemplateID` FROM `email_templates` ".
+            "WHERE label = :emailTemplateLabel;";
+        $res = $this->portal_db->prepared_query($strSQL, $vars);
+
+        return $res[0]['emailTemplateID'];
+    }
+
+    /**
      * Gets template filenames from the db based on emailTemplateID and sets the properties
      * @param int $emailTemplateID emailTemplateID from email_templates table
      * @return void
@@ -419,8 +459,9 @@ class Email
     {
         $vars = array(':emailTemplateID' => $emailTemplateID);
         $strSQL = "SELECT `emailTo`, `emailCc`,`subject`, `body` FROM `email_templates` ".
-                    "WHERE emailTemplateID = :emailTemplateID;";
+            "WHERE emailTemplateID = :emailTemplateID;";
         $res = $this->portal_db->prepared_query($strSQL, $vars);
+
         $this->setEmailToCcWithTemplate(XSSHelpers::xscrub($res[0]['emailTo']));
         $this->setEmailToCcWithTemplate(XSSHelpers::xscrub($res[0]['emailCc']), true);
         $this->setSubjectWithTemplate(XSSHelpers::xscrub($res[0]['subject']));
@@ -436,8 +477,9 @@ class Email
     {
         $vars = array(':emailTemplateLabel' => $emailTemplateLabel);
         $strSQL = "SELECT `emailTo`,`emailCc`,`subject`, `body` FROM `email_templates` ".
-                    "WHERE label = :emailTemplateLabel;";
+            "WHERE label = :emailTemplateLabel;";
         $res = $this->portal_db->prepared_query($strSQL, $vars);
+
         $this->setEmailToCcWithTemplate(XSSHelpers::xscrub($res[0]['emailTo']));
         $this->setEmailToCcWithTemplate(XSSHelpers::xscrub($res[0]['emailCc']), true);
         $this->setSubjectWithTemplate(XSSHelpers::xscrub($res[0]['subject']));
@@ -477,7 +519,7 @@ class Email
      */
     function setSubjectWithTemplate($subjectTemplate)
     {
-        $htmlOutput = $this->setContent($this->getFilepath($subjectTemplate));
+        $htmlOutput = $this->setContent($this->getFilepath($subjectTemplate, 'subject'));
         $this->setSubject($htmlOutput);
     }
 
@@ -507,7 +549,7 @@ class Email
      */
     function setBodyWithTemplate($bodyTemplate)
     {
-        $htmlOutput = $this->setContent($this->getFilepath($bodyTemplate));
+        $htmlOutput = $this->setContent($this->getFilepath($bodyTemplate, 'body'));
         $this->emailBody = $this->setContent(
             'LEAF_main_email_template.tpl',
             'emailBody',
@@ -537,7 +579,7 @@ class Email
 
         // Lookup approvers of current record so we can notify
         $vars = array(':recordID' => $recordID);
-        $strSQL = "SELECT users.userID AS approverID, sd.dependencyID, ser.serviceID, ser.service, users.groupID, rec.title, rec.lastStatus FROM records_workflow_state ".
+        $strSQL = "SELECT users.userID AS approverID, sd.dependencyID, sd.stepID, ser.serviceID, ser.service, ser.groupID AS quadrad, users.groupID, rec.title, rec.lastStatus FROM records_workflow_state ".
             "LEFT JOIN records AS rec USING (recordID) ".
             "LEFT JOIN step_dependencies AS sd USING (stepID) ".
             "LEFT JOIN dependency_privs USING (dependencyID) ".
@@ -559,7 +601,8 @@ class Email
                 "siteRoot" => $this->siteRoot
             ));
 
-            $this->setTemplateByID($emailTemplateID);
+            if ($emailTemplateID < 2)
+                $this->setTemplateByID($emailTemplateID);
 
             require_once 'VAMC_Directory.php';
             $dir = new VAMC_Directory;
@@ -569,97 +612,128 @@ class Email
                     $tmp = $dir->lookupLogin($approver['approverID']);
                     $this->addRecipient($tmp[0]['Email']);
                 }
-            }
 
-            // Special cases depending on dependency of record
-            switch ($approvers[0]['dependencyID']) {
-                // special case for service chiefs
-                case 1:
-                    $vars = array(':serviceID' => $approvers[0]['serviceID']);
-                    $strSQL = "SELECT userID FROM service_chiefs WHERE serviceID=:serviceID AND active=1";
-                    $chief = $this->portal_db->prepared_query($strSQL, $vars);
+                // Special cases depending on dependency of record
+                switch ($approver['dependencyID']) {
+                    // special case for service chiefs
+                    case 1:
+                        $vars = array(':serviceID' => $approver['serviceID']);
+                        $strSQL = "SELECT userID FROM service_chiefs WHERE serviceID=:serviceID AND active=1";
+                        $chief = $this->portal_db->prepared_query($strSQL, $vars);
 
-                    foreach ($chief as $member) {
-                        if (strlen($member['userID']) > 0) {
-                            $tmp = $dir->lookupLogin($member['userID']);
+                        foreach ($chief as $member) {
+                            if (strlen($member['userID']) > 0) {
+                                $tmp = $dir->lookupLogin($member['userID']);
+                                $this->addRecipient($tmp[0]['Email']);
+                            }
+                        }
+                        break;
+
+                    // special case for quadrads
+                    case 8:
+                        $vars = array(':groupID' => $approver['quadrad']);
+                        $strSQL = "SELECT userID FROM users WHERE groupID=:groupID AND active=1";
+                        $quadrad = $this->portal_db->prepared_query($strSQL, $vars);
+                        foreach ($quadrad as $member) {
+                            if (strlen($member['userID']) > 0) {
+                                $tmp = $dir->lookupLogin($member['userID']);
+                                $this->addRecipient($tmp[0]['Email']);
+                            }
+                        }
+                        break;
+
+                    // special case for a person designated by the requestor
+                    case -1:
+                        require_once 'form.php';
+                        $form = new Form($this->portal_db, $loggedInUser);
+
+                        // find the next step
+                        $varsStep = array(':stepID' => $approver['stepID']);
+                        $strSQL = "SELECT indicatorID_for_assigned_empUID FROM workflow_steps WHERE stepID=:stepID";
+                        $resStep = $this->portal_db->prepared_query($strSQL, $varsStep);
+
+                        $resEmpUID = $form->getIndicator($resStep[0]['indicatorID_for_assigned_empUID'], 1, $recordID);
+                        $empUID = $resEmpUID[$resStep[0]['indicatorID_for_assigned_empUID']]['value'];
+
+                        //check if the requester has any backups
+                        $vars4 = array(':empId' => $empUID);
+                        $strSQL = "SELECT backupEmpUID FROM relation_employee_backup WHERE empUID =:empId";
+                        $backupIds = $this->nexus_db->prepared_query($strSQL, $vars4);
+
+                        if ($empUID > 0) {
+                            $tmp = $dir->lookupEmpUID($empUID);
                             $this->addRecipient($tmp[0]['Email']);
                         }
-                    }
-                    break;
 
-                // special case for quadrads
-                case 8:
-                    $vars = array(':groupID' => $approvers[0]['groupID']);
-                    $strSQL = "SELECT userID FROM users WHERE groupID=:groupID AND active=1";
-                    $quadrad = $this->portal_db->prepared_query($strSQL, $vars);
-                    foreach ($quadrad as $member) {
-                        if (strlen($member['userID']) > 0) {
-                            $tmp = $dir->lookupLogin($member['userID']);
-                            $this->addRecipient($tmp[0]['Email']);
+                        // add for backups
+                        foreach ($backupIds as $row) {
+                            $tmp = $dir->lookupEmpUID($row['backupEmpUID']);
+                            if (isset($tmp[0]['Email']) && $tmp[0]['Email'] != '') {
+                                $this->addCcBcc($tmp[0]['Email']);
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-                // special case for a person designated by the requestor
-                case -1:
-                    require_once 'form.php';
-                    $form = new Form($this->portal_db, $loggedInUser);
-
-                    // find the next step
-                    $varsStep = array(':stepID' => $approvers[0]['stepID']);
-                    $strSQL = "SELECT indicatorID_for_assigned_empUID FROM workflow_steps WHERE stepID=:stepID";
-                    $resStep = $this->portal_db->prepared_query($strSQL, $varsStep);
-
-                    $resEmpUID = $form->getIndicator($resStep[0]['indicatorID_for_assigned_empUID'], 1, $this->recordID);
-                    $empUID = $resEmpUID[$resStep[0]['indicatorID_for_assigned_empUID']]['value'];
-
-                    //check if the requester has any backups
-                    $vars4 = array(':empId' => $empUID);
-                    $strSQL = "SELECT backupEmpUID FROM relation_employee_backup WHERE empUID =:empId";
-                    $backupIds = $this->nexus_db->prepared_query($strSQL, $vars4);
-
-                    if ($empUID > 0) {
-                        $tmp = $dir->lookupEmpUID($empUID);
+                    // requestor followup
+                    case -2:
+                        $vars = array(':recordID' => $recordID);
+                        $strSQL = "SELECT userID FROM records WHERE recordID=:recordID";
+                        $resRequestor = $this->portal_db->prepared_query($strSQL, $vars);
+                        $tmp = $dir->lookupLogin($resRequestor[0]['userID']);
                         $this->addRecipient($tmp[0]['Email']);
-                    }
+                        break;
 
-                    // add for backups
-                    foreach ($backupIds as $row) {
-                        $tmp = $dir->lookupEmpUID($row['backupEmpUID']);
-                        if (isset($tmp[0]['Email']) && $tmp[0]['Email'] != '') {
-                            $this->addCcBcc($tmp[0]['Email']);
+                    // special case for a group designated by the requestor
+                    case -3:
+                        require_once 'form.php';
+                        $form = new Form($this->portal_db, $loggedInUser);
+
+                        // find the next step
+                        $varsStep = array(':stepID' => $approver['stepID']);
+                        $strSQL = "SELECT indicatorID_for_assigned_groupID FROM workflow_steps WHERE stepID=:stepID";
+                        $resStep = $this->portal_db->prepared_query($strSQL, $varsStep);
+
+                        $resGroupID = $form->getIndicator($resStep[0]['indicatorID_for_assigned_groupID'], 1, $recordID);
+                        $groupID = $resGroupID[$resStep[0]['indicatorID_for_assigned_groupID']]['value'];
+
+                        if ($groupID > 0) {
+                            $this->addGroupRecipient($groupID);
                         }
-                    }
-                    break;
-
-                // requestor followup
-                case -2:
-                    $vars = array(':recordID' => $this->recordID);
-                    $strSQL = "SELECT userID FROM records WHERE recordID=:recordID";
-                    $resRequestor = $this->portal_db->prepared_query($strSQL, $vars);
-                    $tmp = $dir->lookupLogin($resRequestor[0]['userID']);
-                    $this->addRecipient($tmp[0]['Email']);
-                    break;
-
-                // special case for a group designated by the requestor
-                case -3:
-                    require_once 'form.php';
-                    $form = new Form($this->portal_db, $loggedInUser);
-
-                    // find the next step
-                    $varsStep = array(':stepID' => $approvers[0]['stepID']);
-                    $strSQL = "SELECT indicatorID_for_assigned_groupID FROM workflow_steps WHERE stepID=:stepID";
-                    $resStep = $this->db->prepared_query($strSQL, $varsStep);
-
-                    $resGroupID = $form->getIndicator($resStep[0]['indicatorID_for_assigned_groupID'], 1, $this->recordID);
-                    $groupID = $resGroupID[$resStep[0]['indicatorID_for_assigned_groupID']]['value'];
-
-                    if ($groupID > 0) {
-                        $this->addGroupRecipient($groupID);
-                    }
-                    break;
+                        break;
+                }
             }
             $this->sendMail();
+        } elseif ($emailTemplateID === -4) {
+            // Record has no approver so if it is sent from Mass Action Email Reminder, notify user
+            $vars = array(':recordID' => $recordID);
+            $strSQL = "SELECT rec.userID, rec.serviceID, ser.service, rec.title, rec.lastStatus ".
+                "FROM records AS rec ".
+                    "LEFT JOIN services AS ser USING (serviceID) ".
+                "WHERE recordID=:recordID AND (active=1 OR active IS NULL)";
+            $recordInfo = $this->portal_db->prepared_query($strSQL, $vars);
+
+            $title = strlen($recordInfo[0]['title']) > 45 ? substr($recordInfo[0]['title'], 0, 42) . '...' : $recordInfo[0]['title'];
+
+            $this->addSmartyVariables(array(
+                "truncatedTitle" => $title,
+                "fullTitle" => $recordInfo[0]['title'],
+                "recordID" => $recordID,
+                "service" => $recordInfo[0]['service'],
+                "lastStatus" => $recordInfo[0]['lastStatus'],
+                "siteRoot" => $this->siteRoot
+            ));
+
+            $this->setTemplateByID($emailTemplateID);
+
+            require_once 'VAMC_Directory.php';
+            $dir = new VAMC_Directory;
+
+            // Get user email and send
+            $tmp = $dir->lookupLogin($recordInfo['userID']);
+            $this->addRecipient($tmp[0]['Email']);
+            $this->sendMail();
+        } elseif ($emailTemplateID > 1) {
+            $this->sendMail(); // Check for custom event to finalize email on Notify Next
         }
     }
 }

@@ -7,7 +7,7 @@
 
     <li class="leaf-width-5rem leaf-mob-menu"><a href="../">Home</a></li>
 
-    <li class="leaf-width-8rem leaf-mob-menu"><a href="../?a=reports">Report Builder</a></li>
+    <li class="leaf-width-8rem leaf-mob-menu"><a href="../?a=reports&v=3">Report Builder</a></li>
 
     <li class="leaf-width-8rem leaf-mob-menu lev2">
         <a href="javascript:void(0);">Site Links</a>
@@ -56,6 +56,7 @@
                 <li><a href="../report.php?a=LEAF_import_data">Import Spreadsheet</a></li>
                 <li><a href="../report.php?a=LEAF_mass_action">Mass Action</a></li>
                 <li><a href="../report.php?a=LEAF_request_initiator_new_account">Initiator New Account</a></li>
+                <li><a href="../report.php?a=LEAF_input_table_report">Grid Splitter</a></li>
                 </ul>
             </li>
 

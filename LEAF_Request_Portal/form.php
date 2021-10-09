@@ -88,7 +88,7 @@ class Form
     public function getAllCategories()
     {
         $res = $this->db->prepared_query(
-            'SELECT categoryID, categoryName, categoryDescription FROM categories WHERE disabled = 0',
+            'SELECT categoryID, categoryName, categoryDescription FROM categories WHERE disabled = 0 ORDER BY categoryName',
             array()
         );
 
@@ -535,8 +535,15 @@ class Form
         // prevent masked data from being output
         if ($form[$idx]['isMasked'])
         {
-            $form[$idx]['value'] = '[protected data]';
-            $form[$idx]['displayedValue'] = '[protected data]';
+            if (isset($data[0]['data'])
+                && ($data[0]['format'] == 'fileupload'
+                    || $data[0]['format'] == 'image')) {
+                $form[$idx]['value'] = $this->fileToArray('[protected data]');
+                $form[$idx]['displayedValue'] = $this->fileToArray('[protected data]');
+            } else {
+                $form[$idx]['value'] = '[protected data]';
+                $form[$idx]['displayedValue'] = '[protected data]';
+            }
         }
 
         // handle radio/checkbox options
@@ -2131,7 +2138,7 @@ class Form
                             $parsedDate = strtotime($item['data']);
                             if ($parsedDate !== false)
                             {
-                                $item['data'] = date('n/j/Y', $parsedDate);
+                                $item['data'] = date('m/d/Y', $parsedDate);
                             }
                         }
                         break;
@@ -2488,6 +2495,9 @@ class Form
         foreach ($query['terms'] as $q)
         {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
             // Logic for AND/OR Gate
             if ($count === 0) {
                 $gate = '';
@@ -2505,8 +2515,11 @@ class Form
                 }
             }
 
+<<<<<<< HEAD
 =======
 >>>>>>> master
+=======
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
             $operator = '';
             switch ($q['operator']) {
                 case '>':
@@ -2536,14 +2549,12 @@ class Form
                     break;
                 default:
                     return 0;
-
-                    break;
             }
 
             $vars[':' . $q['id'] . $count] = $q['match'];
             switch ($q['id']) {
                 case 'recordID':
-                    $conditions .= "recordID {$operator} :recordID{$count} AND ";
+                    $conditions .= "{$gate}recordID {$operator} :recordID{$count}";
 
                     break;
                 case 'recordIDs':
@@ -2559,31 +2570,31 @@ class Form
                     }
                     $validRecordIDs = trim($validRecordIDs, ',');
 
-                    $conditions .= "recordID IN ({$validRecordIDs}) AND ";
+                    $conditions .= "{$gate}recordID IN ({$validRecordIDs})";
 
                     unset($vars[":recordIDs{$count}"]);
 
                     break;
                 case 'serviceID':
-                    $conditions .= "serviceID {$operator} :serviceID{$count} AND ";
+                    $conditions .= "{$gate}serviceID {$operator} :serviceID{$count}";
 
                     break;
                 case 'submitted':
-                    $conditions .= "submitted {$operator} :submitted{$count} AND ";
+                    $conditions .= "{$gate}submitted {$operator} :submitted{$count}";
 
                     break;
                 case 'deleted':
-                    $conditions .= "deleted {$operator} :deleted{$count} AND ";
+                    $conditions .= "{$gate}deleted {$operator} :deleted{$count}";
 
                     break;
                 case 'title':
-                    $conditions .= "title {$operator} :title{$count} AND ";
+                    $conditions .= "{$gate}title {$operator} :title{$count}";
                     $scrubSpace = array('/^(%\s)+/', '/(\s+%)$/');
                     $vars[':title' . $count] = preg_replace($scrubSpace, '%', $vars[':title' . $count]);
 
                     break;
                 case 'userID':
-                    $conditions .= "userID {$operator} :userID{$count} AND ";
+                    $conditions .= "{$gate}userID {$operator} :userID{$count}";
 
                     break;
                 case 'date': // backwards compatibility
@@ -2591,14 +2602,14 @@ class Form
                     switch ($operator) {
                         case '=':
                             $vars[':date' . $count . 'b'] = $vars[':date' . $count] + 86400;
-                            $conditions .= "date >= :date{$count} AND date <= :date{$count}b AND ";
+                            $conditions .= "{$gate}(date >= :date{$count} AND date <= :date{$count}b)";
 
                             break;
                         case '<=':
                             $vars[':date' . $count] += 86400; // set to end of day
                             // no break
                         default:
-                            $conditions .= "date {$operator} :date{$count} AND ";
+                            $conditions .= "{$gate}date {$operator} :date{$count}";
 
                             break;
                     }
@@ -2609,14 +2620,14 @@ class Form
                     switch ($operator) {
                         case '=':
                             $vars[':dateInitiated' . $count . 'b'] = $vars[':dateInitiated' . $count] + 86400;
-                            $conditions .= "date >= :dateInitiated{$count} AND date <= :dateInitiated{$count}b AND ";
+                            $conditions .= "{$gate}(date >= :dateInitiated{$count} AND date <= :dateInitiated{$count}b)";
 
                             break;
                         case '<=':
                             $vars[':dateInitiated' . $count] += 86400; // set to end of day
                             // no break
                         default:
-                            $conditions .= "date {$operator} :dateInitiated{$count} AND ";
+                            $conditions .= "{$gate}date {$operator} :dateInitiated{$count}";
 
                             break;
                     }
@@ -2627,14 +2638,14 @@ class Form
                     switch ($operator) {
                         case '=':
                             $vars[':dateSubmitted' . $count . 'b'] = $vars[':dateSubmitted' . $count] + 86400;
-                            $conditions .= "submitted >= :dateSubmitted{$count} AND submitted <= :dateSubmitted{$count}b AND ";
+                            $conditions .= "{$gate}(submitted >= :dateSubmitted{$count} AND submitted <= :dateSubmitted{$count}b)";
 
                             break;
                         case '<=':
                             $vars[':dateSubmitted' . $count] += 86400; // set to end of day
                             // no break
                         default:
-                            $conditions .= "submitted {$operator} :dateSubmitted{$count} AND ";
+                            $conditions .= "{$gate}submitted {$operator} :dateSubmitted{$count}";
 
                             break;
                     }
@@ -2660,28 +2671,28 @@ class Form
                     {
                         switch ($vars[':stepID' . $count]) {
                             case 'submitted':
-                                $conditions .= 'submitted > 0 AND ';
+                                $conditions .= "{$gate}submitted > 0";
 
                                 break;
                             case 'notSubmitted': // backwards compat
-                                $conditions .= 'submitted = 0 AND ';
+                                $conditions .= "{$gate}submitted = 0";
 
                                 break;
                             case 'deleted':
-                                $conditions .= 'deleted > 0 AND ';
+                                $conditions .= "{$gate}deleted > 0";
 
                                 break;
                             case 'notDeleted': // backwards compat
-                                $conditions .= 'deleted = 0 AND ';
+                                $conditions .= "{$gate}deleted = 0";
 
                                 break;
                             case 'resolved':
-                                $conditions .= 'records_workflow_state.stepID IS NULL AND submitted > 0 AND deleted = 0 AND ';
+                                $conditions .= "{$gate}(records_workflow_state.stepID IS NULL AND submitted > 0 AND deleted = 0)";
                                 $joins .= 'LEFT JOIN records_workflow_state USING (recordID) ';
 
                                 break;
                             case 'notResolved': // backwards compat
-                                $conditions .= 'records_workflow_state.stepID IS NOT NULL AND submitted > 0 AND deleted = 0 AND ';
+                                $conditions .= "{$gate}(records_workflow_state.stepID IS NOT NULL AND submitted > 0 AND deleted = 0)";
                                 $joins .= 'LEFT JOIN records_workflow_state USING (recordID) ';
 
                                 break;
@@ -2708,28 +2719,28 @@ class Form
                         {
                             switch ($vars[':stepID' . $count]) {
                             case 'submitted':
-                                $conditions .= 'submitted = 0 AND ';
+                                $conditions .= "{$gate}submitted = 0";
 
                                 break;
                             case 'notSubmitted': // backwards compat
-                                $conditions .= 'submitted > 0 AND ';
+                                $conditions .= "{$gate}submitted > 0";
 
                                 break;
                             case 'deleted':
-                                $conditions .= 'deleted = 0 AND ';
+                                $conditions .= "{$gate}deleted = 0";
 
                                 break;
                             case 'notDeleted': // backwards compat
-                                $conditions .= 'deleted > 0 AND ';
+                                $conditions .= "{$gate}deleted > 0";
 
                                 break;
                             case 'resolved':
-                                $conditions .= 'records_workflow_state.stepID IS NOT NULL AND submitted > 0 AND deleted = 0 AND ';
+                                $conditions .= "{$gate}(records_workflow_state.stepID IS NOT NULL AND submitted > 0 AND deleted = 0)";
                                 $joins .= 'LEFT JOIN records_workflow_state USING (recordID) ';
 
                                 break;
                             case 'notResolved': // backwards compat
-                                $conditions .= 'records_workflow_state.stepID IS NULL AND submitted > 0 AND deleted = 0 AND ';
+                                $conditions .= "{$gate}(records_workflow_state.stepID IS NULL AND submitted > 0 AND deleted = 0)";
                                 $joins .= 'LEFT JOIN records_workflow_state USING (recordID) ';
 
                                 break;
@@ -2804,13 +2815,13 @@ class Form
                     // fix to select null data
                     if ($operator == '=' && $vars[':data' . $count] == '')
                     {
-                        $conditions .= "(lj_data{$count}.data {$operator} :data{$count} OR lj_data{$count}.data IS NULL) AND ";
+                        $conditions .= "{$gate}(lj_data{$count}.data {$operator} :data{$count} OR lj_data{$count}.data IS NULL)";
                     }
                     else
                     {
                         if ($operator == '!=' && $vars[':data' . $count] == '')
                         {
-                            $conditions .= "(lj_data{$count}.data {$operator} :data{$count} OR lj_data{$count}.data IS NOT NULL) AND ";
+                            $conditions .= "{$gate}(lj_data{$count}.data {$operator} :data{$count})";
                         }
                         else
                         {
@@ -2841,11 +2852,11 @@ class Form
                             if (isset($tResTypeHint[0]['default'])
                             && $tResTypeHint[0]['default'] == $vars[':data' . $count])
                             {
-                                $conditions .= "({$dataTerm} {$operator} $dataMatch OR {$dataTerm} IS NULL) AND ";
+                                $conditions .= "{$gate}({$dataTerm} {$operator} $dataMatch OR {$dataTerm} IS NULL)";
                             }
                             else
                             {
-                                $conditions .= "{$dataTerm} {$operator} $dataMatch AND ";
+                                $conditions .= "{$gate}{$dataTerm} {$operator} $dataMatch";
                             }
                         }
                     }
@@ -2871,12 +2882,24 @@ class Form
             $count++;
         }
 
+<<<<<<< HEAD
+=======
+        // End Check for Conditions Query
+        if ($count) {
+            $conditions .= ') ';
+        } else {
+            $conditions = '';
+        }
+
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
         $joinCategoryID = false;
         $joinAllCategoryID = false;
         $joinRecords_Dependencies = false;
         $joinRecords_Step_Fulfillment = false;
+        $addJoinRecords_Step_Fulfillment_Only = false;
         $joinActionHistory = false;
         $joinRecordResolutionData = false;
+        $joinRecordResolutionBy = false;
         $joinInitiatorNames = false;
         if (isset($query['joins']))
         {
@@ -2910,10 +2933,18 @@ class Form
                         break;
                     case 'stepFulfillment':
                         $joinRecords_Step_Fulfillment = true;
-
                         break;
+
+                    case 'stepFulfillmentOnly':
+                        $addJoinRecords_Step_Fulfillment_Only = true;
+                        break;
+
                     case 'recordResolutionData':
                         $joinRecordResolutionData = true;
+
+                        break;
+                    case 'recordResolutionBy':
+                        $joinRecordResolutionBy = true;
 
                         break;
                     case 'initiatorName':
@@ -2926,7 +2957,6 @@ class Form
             }
         }
 
-        $conditions = substr($conditions, 0, strlen($conditions) - 4); // trim trailing "and "
         $conditions = $conditions == '' ? '1=1' : $conditions;
         $limit = '';
         if (isset($query['limit']) && is_numeric($query['limit']))
@@ -3066,9 +3096,6 @@ class Form
 
         if($joinRecordResolutionData)
         {
-            $conditions .= 'records_workflow_state.stepID IS NULL AND submitted > 0 AND deleted = 0 AND ';
-            $joins .= 'LEFT JOIN records_workflow_state USING (recordID) ';
-
             $res2 = $this->db->prepared_query('SELECT recordID, lastStatus, records_step_fulfillment.stepID, fulfillmentTime FROM records
                     LEFT JOIN records_step_fulfillment USING (recordID)
                     LEFT JOIN records_workflow_state USING (recordID)
@@ -3086,15 +3113,55 @@ class Form
             }
         }
 
+        if ($joinRecordResolutionBy === true) {
+            require_once 'VAMC_Directory.php';
+            $dir = new VAMC_Directory;
+
+            $strSQL = "SELECT recordID, action_history.userID as resolvedBy, action_history.stepID, action_history.actionType FROM action_history ".
+                      "LEFT JOIN records USING (recordID) ".
+                      "INNER JOIN workflow_routes USING (stepID) ".
+                      "LEFT JOIN records_workflow_state USING (recordID) ".
+                      "WHERE recordID IN ($recordIDs) ".
+                        "AND action_history.actionType = workflow_routes.actionType ".
+                        "AND records_workflow_state.stepID IS NULL ".
+                        "AND nextStepID = 0 ".
+                        "AND submitted > 0 ".
+                        "AND deleted = 0";
+
+            $res2 = $this->db->prepared_query($strSQL, array());
+
+            foreach ($res2 as $item) {
+                $user = $dir->lookupLogin($item['resolvedBy']);
+                $nameResolved = isset($user[0]) ? "{$user[0]['Lname']}, {$user[0]['Fname']} " : $item['resolvedBy'];
+                $data[$item['recordID']]['recordResolutionBy']['resolvedBy'] = $nameResolved;
+            }
+        }
+
         if ($joinRecords_Step_Fulfillment)
         {
-            $res2 = $this->db->prepared_query('SELECT * FROM records_step_fulfillment
-    											LEFT JOIN workflow_steps USING (stepID)
-    											WHERE recordID IN (' . $recordIDs . ')', array());
+            $strSQL = 'SELECT * FROM records_step_fulfillment LEFT JOIN workflow_steps USING (stepID) '.
+                'WHERE recordID IN (' . $recordIDs . ')';
+            $res2 = $this->db->prepared_query($strSQL, array());
             foreach ($res2 as $item)
             {
                 $data[$item['recordID']]['stepFulfillment'][$item['stepID']]['time'] = $item['fulfillmentTime'];
                 $data[$item['recordID']]['stepFulfillment'][$item['stepID']]['step'] = $item['stepTitle'];
+            }
+        }
+        if ($addJoinRecords_Step_Fulfillment_Only) {
+            $strSQL = 'SELECT recordID, stepID, fulfillmentTime FROM records_step_fulfillment WHERE recordID IN (' . $recordIDs . ') '.
+                'ORDER BY recordID, fulfillmentTime DESC';
+            $res2 = $this->db->prepared_query($strSQL, array());
+            foreach ($res2 as $item)
+            {
+                // Need all bits to add to stepFullfillmentOnly otherwise skip
+                if (!empty($item['recordID']) && !empty($item['fulfillmentTime']) && !empty($item['stepID']))
+                {
+                    $stepFulfill = [];
+                    $stepFulfill['stepID'] = $item['stepID'];
+                    $stepFulfill['time'] = $item['fulfillmentTime'];
+                    $data[$item['recordID']]['stepFulfillmentOnly'][] = $stepFulfill;
+                }
             }
         }
 
@@ -3119,28 +3186,34 @@ class Form
         return $data;
     }
 
-    public function getDisabledIndicatorList($disabled)
+    public function getDisabledIndicatorList(int $disabled)
     {
         $vars = array(':disabled' => (int)$disabled);
-        $res = $this->db->prepared_query('SELECT * FROM indicators
-											LEFT JOIN categories USING (categoryID)
-						                    WHERE indicators.disabled >= :disabled
-						    					AND categories.disabled = 0
-						    				ORDER BY name', $vars);
+        $strSQL = "SELECT indicatorID, name, format, description, categories.categoryName, ".
+                    "indicators.disabled FROM indicators ".
+                    "LEFT JOIN categories USING (categoryID) ".
+                    "WHERE indicators.disabled >= :disabled ".
+                    "AND categories.disabled = 0 ".
+                    "ORDER BY name";
 
-        $data = array();
+        $res = $this->db->prepared_query($strSQL, $vars);
+
+        $disabledIndicatorList = array();
         foreach ($res as $item)
         {
             $temp = array();
+            $delDate = $item['disabled'] + 30*24*60*60; //30 days from timestamp
+            $delDateFormat = date("m/d/Y",$delDate);
             $temp['indicatorID'] = $item['indicatorID'];
             $temp['name'] = $item['name'];
             $temp['format'] = $item['format'];
             $temp['description'] = $item['description'];
             $temp['categoryName'] = $item['categoryName'];
-            $data[] = $temp;
+            $temp['disabled'] = ($item['disabled'] == 1) ? 'Archived' : 'Deletion Date: '. $delDateFormat;
+            $disabledIndicatorList[] = $temp;
         }
 
-        return $data;
+        return $disabledIndicatorList;
     }
 
     /**
@@ -3169,25 +3242,27 @@ class Form
                 break;
         }
         $vars = array();
-        $query = 'SELECT *, COALESCE(NULLIF(description, ""), name) as name, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive FROM indicators
-                    LEFT JOIN categories USING (categoryID)
-                    WHERE indicators.disabled = 0
-                        AND format != ""
-                        AND name != ""
-                        AND categories.disabled = 0' . $orderBy;
+        $strSQL = "SELECT *, COALESCE(NULLIF(description, ''), name) as name, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive, indicators.disabled as isDisabled FROM indicators ".
+                    "LEFT JOIN categories USING (categoryID) ".
+                    "WHERE indicators.disabled <= 1 ".
+                        "AND format != '' ".
+                        "AND name != '' ".
+                        "AND categories.disabled = 0" . $orderBy;
         if($includeHeadings) {
-            $query = 'SELECT *, COALESCE(NULLIF(description, ""), name) as name, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive FROM indicators
-            LEFT JOIN categories USING (categoryID)
-            WHERE indicators.disabled = 0
-                AND name != ""
-                AND categories.disabled = 0' . $orderBy;
+            $strSQL = "SELECT *, COALESCE(NULLIF(description, ''), name) as name, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive, indicators.disabled as isDisabled FROM indicators ".
+                        "LEFT JOIN categories USING (categoryID) ".
+                        "WHERE indicators.disabled <= 1 ".
+                            "AND name != '' ".
+                            "AND categories.disabled = 0" . $orderBy;
         }
-        $res = $this->db->prepared_query($query, $vars);
+        $res = $this->db->prepared_query($strSQL, $vars);
 
-        $resAll = $this->db->prepared_query('SELECT *, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive FROM indicators
-													LEFT JOIN categories USING (categoryID)
-								                    WHERE indicators.disabled = 0
-								    					AND categories.disabled = 0' . $orderBy, $vars);
+        $strSQL = "SELECT *, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive, indicators.disabled as isDisabled FROM indicators ".
+                    "LEFT JOIN categories USING (categoryID) ".
+					"WHERE indicators.disabled <= 1 ".
+					    "AND categories.disabled = 0" . $orderBy;
+
+        $resAll = $this->db->prepared_query($strSQL, $vars);
 
         $dataStaples = array();
         $resStaples = $this->db->prepared_query('SELECT stapledCategoryID, category_staples.categoryID as categoryID, categories.categoryID as stapledSubCategoryID, categories.parentID FROM category_staples LEFT JOIN categories ON (stapledCategoryID = categories.parentID)', $vars);
@@ -3210,6 +3285,7 @@ class Form
             $temp['name'] = $item['name'];
             $temp['format'] = $item['format'];
             $temp['description'] = $item['description'];
+            $temp['isDisabled'] = (int)$item['isDisabled'];
             $temp['categoryName'] = $item['categoryName'];
             $temp['categoryID'] = $item['categoryID'];
             $temp['is_sensitive'] = $item['is_sensitive'];
@@ -3233,6 +3309,7 @@ class Form
                     $temp['name'] = $item['name'];
                     $temp['format'] = $item['format'];
                     $temp['description'] = $item['description'];
+                    $temp['isDisabled'] = (int)$item['isDisabled'];
                     $temp['categoryName'] = $item['categoryName'];
                     $temp['categoryID'] = $item['categoryID'];
                     $temp['is_sensitive'] = $item['is_sensitive'];
@@ -3503,6 +3580,10 @@ class Form
                 {
                     $child[$idx]['value'] = (isset($data[$idx]['data']) && $data[$idx]['data'] != '')
                                                 ? '[protected data]' : '';
+                    if ($field['format'] == 'fileupload'
+                        || $field['format'] == 'image') {
+                        $child[$idx]['displayedValue'] = $this->fileToArray('[protected data]');
+                    }
                     if(isset($child[$idx]['displayedValue']) && $child[$idx]['displayedValue'] != '') {
                         $child[$idx]['displayedValue'] = '[protected data]';
                     }
@@ -3658,5 +3739,24 @@ class Form
         $this->db->prepared_query('DELETE FROM records_dependencies WHERE recordID=:recordID', $vars);
             
         return 1;
+    }
+
+    /**
+     * Purpose: Send reminder emails to users depending on current step of record
+     * @param $recordID
+     * @param $days
+     * @throws SmartyException
+     */
+    function sendReminderEmail($recordID, $days) {
+
+        require_once 'Email.php';
+        $email = new Email();
+        $email->setSender('leaf.noreply@va.gov');
+        $email->addSmartyVariables(array(
+            "daysSince" => $days
+        ));
+
+        $email->attachApproversAndEmail($recordID, Email::EMAIL_REMINDER, $this->login);
+
     }
 }

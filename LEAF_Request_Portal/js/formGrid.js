@@ -14,7 +14,6 @@ var LeafFormGrid = function(containerID, options) {
     var isDataLoaded = false;
     var defaultLimit = 50;
     var currLimit = 50;
-    var headerColor = '#d1dfff';
     var dataBlob = {}; // if data needs to be passed in
     var postProcessDataFunc = null;
     var preRenderFunc = null;
@@ -26,8 +25,6 @@ var LeafFormGrid = function(containerID, options) {
     $('#' + containerID).html('<div id="'+prefixID+'grid"></div><div id="'+prefixID+'form" style="display: none"></div>');
 
     $('#' + prefixID+'grid').html('<div style="position: relative"><div id="'+prefixID+'gridToolbar" style="display: none; width: 90px; margin: 0 0 0 auto; text-align: right"></div></div><div id="'+prefixID+'table_stickyHeader" style="display: none"></div><table id="'+prefixID+'table" class="leaf_grid"><thead id="'+prefixID+'thead" aria-label="Search Results"></thead><tbody id="'+prefixID+'tbody"></tbody><tfoot id="'+prefixID+'tfoot"></tfoot></table>');
-
-    $('#' + prefixID+'thead').css({'background-color': headerColor});
 
     if(options == undefined) {
         form = new LeafForm(prefixID + 'form');
@@ -45,7 +42,14 @@ var LeafFormGrid = function(containerID, options) {
      * @param values (required) object of cells and names to generate grid
      * @memberOf LeafFormGrid
      */
-    function printTableReportBuilder(values) {
+    function printTableReportBuilder(values, columnValues) {
+        // remove unused columns
+        if (columnValues !== null && columnValues !== undefined) {
+            values.format = values.format.filter(function (value) {
+                return columnValues.includes(value.id);
+            });
+        }
+
         var gridBodyBuffer = '';
         var gridHeadBuffer = '';
         var rows = values.cells === undefined ? 0 : values.cells.length;
@@ -56,9 +60,9 @@ var LeafFormGrid = function(containerID, options) {
         var tDelim = '';
 
         //finds and displays column names
-        for(var i = 0; i < columns; i++){
-            tDelim = (i == columns-1) ? '' : delim;
-            gridHeadBuffer +='<td style="width: 100px;">' + values.format[i].name + tDelim + '</td>';
+        for (let i = 0; i < columns; i++) {
+            tDelim = (i === columns - 1) ? '' : delim;
+            gridHeadBuffer += '<td style="width: 100px;">' + values.format[i].name + tDelim + '</td>';
             columnOrder.push(values.format[i].id)
         }
 
@@ -74,7 +78,7 @@ var LeafFormGrid = function(containerID, options) {
 
             //for all values with matching column id, replaces cell with value
             for (var j = 0; j < values.columns.length; j++) {
-                tDelim = (j == values.columns.length-1) ? '' : delim;
+                tDelim = (j == values.columns.length - 1) ? '' : delim;
                 if(columnOrder.indexOf(values.columns[j]) !== -1) {
                     var value = values.cells[i] === undefined || values.cells[i][j] === undefined ? '' : values.cells[i][j];
                     rowBuffer.splice(columnOrder.indexOf(values.columns[j]), 1, '<td style="width:100px">' + value + tDelim + '</td>');
@@ -111,6 +115,13 @@ var LeafFormGrid = function(containerID, options) {
                 if(response[indicatorID].format == 'grid') {
                     data = printTableReportBuilder(data);
                 }
+                if(response[indicatorID].format == 'date') {
+                    data = new Date(data).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                    });
+                }
                 $('#' + prefixID+recordID+'_'+indicatorID).empty().html(data);
                 $('#' + prefixID+recordID+'_'+indicatorID).fadeOut(250, function() {
                     $('#' + prefixID+recordID+'_'+indicatorID).fadeIn(250);
@@ -132,7 +143,7 @@ var LeafFormGrid = function(containerID, options) {
         var virtualHeader = '<tr id="'+prefixID + 'tVirt_tr'+'">';
         if(showIndex) {
             temp += '<th tabindex="0" id="'+ prefixID +'header_UID" style="text-align: center">UID</th>';
-            virtualHeader += '<th style="text-align: center">UID</th>';
+            virtualHeader += '<th id="Vheader_UID" style="text-align: center">UID</th>';
         }
         $('#' + prefixID + 'thead').html(temp);
 
@@ -148,19 +159,6 @@ var LeafFormGrid = function(containerID, options) {
                     headerToggle = 0;
                 }
                 renderBody(0, Infinity);
-            });
-            // todo: move this into a stylesheet
-            $('#'+ prefixID +'header_UID').on('mouseover', null, null, function(data) {
-                $('#'+ prefixID +'header_UID').css('background-color', '#79a2ff');
-            });
-            $('#'+ prefixID +'header_UID').on('mouseout', null, null, function(data) {
-                $('#'+ prefixID +'header_UID').css({'background-color': headerColor});
-            });
-            $('#'+ prefixID +'header_UID').on('focusin', null, null, function(data) {
-                $('#'+ prefixID +'header_UID').css('background-color', '#79a2ff');
-            });
-            $('#'+ prefixID +'header_UID').on('focusout', null, null, function(data) {
-                $('#'+ prefixID +'header_UID').css({'background-color': headerColor});
             });
         }
 
@@ -200,19 +198,7 @@ var LeafFormGrid = function(containerID, options) {
                             renderBody(0, Infinity);
                         }
                         });
-                // todo: move this into a stylesheet
-                $('#'+ prefixID +'header_' + headers[i].indicatorID).on('mouseover', null, headers[i].indicatorID, function(data) {
-                    $('#'+ prefixID +'header_' + data.data).css('background-color', '#79a2ff');
-                });
-                $('#'+ prefixID +'header_' + headers[i].indicatorID).on('mouseout', null, headers[i].indicatorID, function(data) {
-                    $('#'+ prefixID +'header_' + data.data).css({'background-color': headerColor});
-                });
-                    $('#'+ prefixID +'header_' + headers[i].indicatorID).on('focusin', null, headers[i].indicatorID, function(data) {
-                            $('#'+ prefixID +'header_' + data.data).css('background-color', '#79a2ff');
-                    });
-                    $('#'+ prefixID +'header_' + headers[i].indicatorID).on('focusout', null, headers[i].indicatorID, function(data) {
-                            $('#'+ prefixID +'header_' + data.data).css({'background-color': headerColor});
-                    });
+
             }
         }
         $('#' + prefixID + 'thead').append('</tr>');
@@ -294,7 +280,7 @@ var LeafFormGrid = function(containerID, options) {
         var isNumeric = true;
         var idKey = 'id' + key;
         var tDate;
-        for(var i in currentData) {
+        for(let i in currentData) {
             currentData[i].recordID = parseInt(currentData[i].recordID);
             if(currentData[i][key] == undefined) {
                 currentData[i][key] = $('#'+ prefixID + currentData[i].recordID + '_' + key).html();
@@ -520,8 +506,14 @@ var LeafFormGrid = function(containerID, options) {
                             buffer += '<td id="'+prefixID+currentData[i].recordID+'_'+headers[j].indicatorID+'" data-editable="'+ editable +'" data-record-id="'+currentData[i].recordID+'" data-indicator-id="'+headers[j].indicatorID+'">' + htmlPrint + '</td>';
                         }
                         else {
-                            if(currentData[i].s1[data.data] !== undefined && data.data.search("gridInput")){
-                                data.data = printTableReportBuilder(currentData[i].s1[data.data]);
+                            if (headers[j].cols !== undefined) {
+                                if (currentData[i].s1[data.data] !== undefined && data.data.search("gridInput") && headers[j].cols.length > 0) {
+                                    data.data = printTableReportBuilder(currentData[i].s1[data.data], headers[j].cols);
+                                }
+                            } else {
+                                if (currentData[i].s1[data.data] !== undefined && data.data.search("gridInput")) {
+                                    data.data = printTableReportBuilder(currentData[i].s1[data.data], null);
+                                }
                             }
                             buffer += '<td id="'+prefixID+currentData[i].recordID+'_'+headers[j].indicatorID+'" data-editable="'+ editable +'" data-record-id="'+currentData[i].recordID+'" data-indicator-id="'+headers[j].indicatorID+'">' + data.data + '</td>';
                         }
@@ -574,7 +566,7 @@ var LeafFormGrid = function(containerID, options) {
             form.getForm(indicatorID, 1);
             form.dialog().show();
         });
-        for(var i in callbackBuffer) {
+        for(let i in callbackBuffer) {
             callbackBuffer[i]();
         }
 
@@ -586,19 +578,19 @@ var LeafFormGrid = function(containerID, options) {
         renderVirtualHeader();
     }
 
-        /**
+    /**
      * @memberOf LeafFormGrid
      */
-         function announceResults(){
-             var term = $('[name="searchtxt"]').val();
+     function announceResults(){
+         let term = $('[name="searchtxt"]').val();
 
-             if(currentData.length == 0) {
-                 $('.status').text('No results found for term ' + term);
-         }else{
-                 $('.status').text('Search results found for term ' + term + ' listed below');
-            }
-
+         if(currentData.length == 0) {
+             $('.status').text('No results found for term ' + term);
+        } else {
+             $('.status').text('Search results found for term ' + term + ' listed below');
         }
+
+    }
 
     /**
      * @memberOf LeafFormGrid
@@ -693,7 +685,7 @@ var LeafFormGrid = function(containerID, options) {
     function enableToolbar() {
         containerID = prefixID + 'gridToolbar';
         $('#' + containerID).css('display', 'block');
-        $('#' + containerID).html('<button type="button" id="'+ prefixID +'getExcel" class="buttonNorm"><img src="../libs/dynicons/?img=x-office-spreadsheet.svg&w=32" alt="Icon of Spreadsheet" /> Export</button>');
+        $('#' + containerID).html('<br/><button type="button" id="'+ prefixID +'getExcel" class="buttonNorm"><img src="../libs/dynicons/?img=x-office-spreadsheet.svg&w=16" alt="Icon of Spreadsheet" /> Export</button>');
 
         $('#' + prefixID + 'getExcel').on('click', function() {
             if(currentRenderIndex != currentData.length) {

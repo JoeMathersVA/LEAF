@@ -3,12 +3,18 @@
  */
 
 // Global variables
+<<<<<<< HEAD
 let LeafSearch;
 $.getScript('js/formSearch.js', function()
 {
     leafSearch.init();
 });
 let massActionToken = document.getElementById("mass-action-js").getAttribute("data-token");
+=======
+let leafSearch;
+let massActionToken = document.getElementById("mass-action-js").getAttribute("data-token");
+let orgChartPath = document.getElementById("mass-action-js").getAttribute("data-orgChartPath");
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
 let processedRequests = 0;
 let totalActions = 0;
 let successfulActionRecordIDs = [];
@@ -47,14 +53,24 @@ $(document).ready(function(){
     // When changing any mass action, reset all record checkboxes to unchecked
     $(document).on('change', 'input.massActionRequest', function() {
         $('input#selectAllRequests').prop('checked', false);
+<<<<<<< HEAD
         // TODO: reset lastAction select box - document.getElementById("lastAction").selectedIndex = 0;
+=======
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
     });
 
     // Do the search from the input textbox if it is requested
     leafSearch = new LeafFormSearch('searchRequestsContainer');
     leafSearch.setRootURL('./');
+<<<<<<< HEAD
     leafSearch.setSearchFunc(function(search) {
         extraTerms = search;
+=======
+    leafSearch.setOrgchartPath(orgChartPath);
+    leafSearch.setSearchFunc(function(search) {
+        extraTerms = search;
+        doSearch();
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
     });
 });
 
@@ -67,12 +83,19 @@ function chooseAction() {
     let actionValue = $('#action').val();
     if ((actionValue !== '') && (actionValue !== 'email')) {
         // Hide the email reminder and reset then show other options search and perform
+<<<<<<< HEAD
         $('#emailSection').val('').hide();
         $('#searchRequestsContainer').show();
+=======
+        $('#emailSection').hide();
+        $('#searchRequestsContainer').show();
+        leafSearch.init();
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
         doSearch();
     }
     // If selected 'Email Reminder' then hide searches, show last action select
     else if ((actionValue === 'email')) {
+<<<<<<< HEAD
         $('#emailSection').show();
         $('#searchRequestsContainer, #searchResults, #errorMessage').hide();
         // When changing the time of last action, grab the value selected and search it
@@ -83,6 +106,18 @@ function chooseAction() {
               doSearch();
           }
         });
+=======
+        $('#emailSection, #searchRequestsContainer, #searchResults, #errorMessage').show();
+        // When changing the time of last action, grab the value selected and search it
+        $('#lastAction').change(function() {
+            reminderDaysSearch();
+        });
+        $('#submitSearchByDays').click(function() {
+            reminderDaysSearch();
+        });
+        leafSearch.init();
+        reminderDaysSearch();
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
     }
     // Nothing selected so hide search and email sections
     else {
@@ -91,12 +126,27 @@ function chooseAction() {
 }
 
 /**
+<<<<<<< HEAD
+=======
+ * Purpose do reminder search (used by click or change of lastAction text)
+ */
+function reminderDaysSearch() {
+    let daysSince = document.getElementById('lastAction').valueOf();
+    doSearch();
+}
+
+/**
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
  * Sets up and builds the search query, passing it along to listRequests
  */
 function doSearch() {
 
     let getCancelled = false;
+<<<<<<< HEAD
     let getSubmitted = false;
+=======
+    let getSubmitted = true;
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
     let getReminder = 0;
 
     $('input#selectAllRequests').prop('checked', false);
@@ -105,10 +155,18 @@ function doSearch() {
     actionValue = $('select#action').val();
     switch(actionValue) {
         case 'email':
+<<<<<<< HEAD
             getReminder = Number($('#lastAction').val());
             getSubmitted = true;
             break;
 
+=======
+            getReminder = Number(document.getElementById('lastAction').value);
+            break;
+        case 'submit':
+            getSubmitted = false;
+            break;
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
         case 'restore':
             getCancelled = true;
             break;
@@ -148,7 +206,11 @@ function buildQuery(getCancelled, getSubmitted, getReminder)
 
     if (getReminder) {
         requestQuery.joins.push('action_history');
+<<<<<<< HEAD
         requestQuery.terms.push({"id": "stepID","operator": "!=","match": "resolved"})
+=======
+        requestQuery.terms.push({"id": "stepID","operator": "!=","match": "resolved"});
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
     }
 
     //handle extraTerms
@@ -205,8 +267,12 @@ function listRequests(queryObj, thisSearchID, getReminder = 0)
                         let lastActionDate = Number(value.action_history[numberActions-1].time) * 1000;
 
                         // Current date minus selected reminder time period
+<<<<<<< HEAD
                         let comparisonDate = Date.now();
                         comparisonDate -= (getReminder * 86400 * 1000);
+=======
+                        let comparisonDate = Date.now() - (getReminder * 86400 * 1000);
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
                         if (lastActionDate >= comparisonDate) {
                             displayRecord = false;
                         }

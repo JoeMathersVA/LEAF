@@ -99,7 +99,9 @@ switch ($action) {
         $t_form->assign('CSRFToken', $_SESSION['CSRFToken']);
 
         //url
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+        // For Jira Ticket:LEAF-2471/remove-all-http-redirects-from-code
+//        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+        $protocol = 'https';
         $qrcodeURL = "{$protocol}://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
         $main->assign('qrcodeURL', urlencode($qrcodeURL));
 
@@ -140,7 +142,9 @@ switch ($action) {
             $t_form->assign('city', $settings['subHeading'] == '' ? $config->city : $settings['subHeading']);
 
             //url
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+            // For Jira Ticket:LEAF-2471/remove-all-http-redirects-from-code
+//            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+            $protocol = 'https';
             $qrcodeURL = "{$protocol}://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
             $main->assign('qrcodeURL', urlencode($qrcodeURL));
 
@@ -157,6 +161,7 @@ switch ($action) {
 
 $main->assign('leafSecure', XSSHelpers::sanitizeHTML($settings['leafSecure']));
 $main->assign('login', $t_login->fetch('login.tpl'));
+$main->assign('empMembership', $login->getMembership());
 $t_menu->assign('action', $action);
 $t_menu->assign('orgchartPath', Config::$orgchartPath);
 $t_menu->assign('empMembership', $login->getMembership());

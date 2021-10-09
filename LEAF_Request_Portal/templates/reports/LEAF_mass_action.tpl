@@ -27,9 +27,21 @@
         padding: 8px; 
         font-size: 12px;
     }
+    .buttonNorm.takeAction, .buttonNorm.buttonDaySearch {
+        text-align: center;
+        font-weight: bold;
+        white-space: normal
+    }
 </style>
 <!--{include file="site_elements/generic_confirm_xhrDialog.tpl"}-->
+<<<<<<< HEAD
 <script id="mass-action-js" src="./js/pages/mass_action.js" data-token="<!--{$CSRFToken}-->" type="text/javascript"></script>
+=======
+<script id="mass-action-js" src="./js/pages/mass_action.js"
+        data-token="<!--{$CSRFToken}-->"
+        data-orgChartPath="<!--{$orgchartPath}-->"
+        type="text/javascript"></script>
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
 
 <div id="massActionContainer">
     <h1>Mass Action</h1>
@@ -41,6 +53,7 @@
             <option value="restore">Restore</option>
             <option value="submit">Submit</option>
             <option value="email">Email Reminder</option>
+<<<<<<< HEAD
         </select>
     </div>
     <div id="emailSection">
@@ -50,10 +63,19 @@
             <option value="7">&nbsp;7+ days</option>
             <option value="14">14+ days</option>
             <option value="30">30+ days</option>
+=======
+>>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
         </select>
     </div>
 
     <div id="searchRequestsContainer"></div>
+
+    <div id="emailSection">
+        <label for="lastAction">Days Since Last Action</label>
+        <input type="number" id="lastAction" name="lastAction" value="7" maxlength="3" />
+        <button class="buttonNorm buttonDaySearch" id="submitSearchByDays">Search Requests</button>
+    </div>
+
     <img id="iconBusy" src="./images/indicator.gif" class="employeeSelectorIcon" alt="busy">
     <div id="searchResults">
         <button class="buttonNorm takeAction" style="text-align: center; font-weight: bold; white-space: normal">Take Action</button>

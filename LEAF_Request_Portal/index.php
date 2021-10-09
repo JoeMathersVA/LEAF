@@ -5,12 +5,6 @@
 
 error_reporting(E_ALL & ~E_NOTICE);
 
-if (false)
-{
-    echo '<img src="../libs/dynicons/?img=dialog-error.svg&amp;w=96" alt="error" style="float: left" /><div style="font: 36px verdana">Site currently undergoing maintenance, will be back shortly!</div>';
-    exit();
-}
-
 include 'globals.php';
 include '../libs/smarty/Smarty.class.php';
 include 'Login.php';
@@ -36,12 +30,9 @@ unset($db_config);
 $login = new Login($db_phonebook, $db);
 
 $login->loginUser();
-if (!$login->isLogin() || !$login->isInDB())
-{
-    echo 'Session expired, please refresh the page.<br /><br />If this message persists, please contact your administrator.';
-    echo '<br />' . $login->getName();
-    echo '<br />' . $login->getUserID();
+if (!$login->isLogin() || !$login->isInDB()) {
     $login->logout(); // destroy current session tokens
+    header("Location: session_expire.php");
     exit;
 }
 
@@ -234,8 +225,10 @@ switch ($action) {
         $t_form->assign('workflow', $formWorkflow->isActive());
 
         //url
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
-        $qrcodeURL = "{$protocol}://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
+        // For Jira Ticket:LEAF-2471/remove-all-http-redirects-from-code
+//        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+//        $qrcodeURL = "{$protocol}://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
+        $qrcodeURL = "https://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
         $main->assign('qrcodeURL', urlencode($qrcodeURL));
 
         switch ($action) {
@@ -464,8 +457,10 @@ switch ($action) {
         break;
 
     case 'reports':
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
-        $powerQueryURL = "{$protocol}://" . AUTH_URL . "/report_auth.php?r=";
+        // For Jira Ticket:LEAF-2471/remove-all-http-redirects-from-code
+//        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+//        $powerQueryURL = "{$protocol}://" . AUTH_URL . "/report_auth.php?r=";
+        $powerQueryURL = "https://" . AUTH_URL . "/report_auth.php?r=";
 
         $main->assign('stylesheets', array('css/report.css'));
            $main->assign('javascripts', array('js/form.js',
@@ -475,6 +470,7 @@ switch ($action) {
                'js/gridInput.js',
                'js/workflow.js',
                'js/lz-string/lz-string.min.js',
+               '../libs/jsapi/portal/LEAFPortalAPI.js',
                '../libs/js/LEAF/XSSHelpers.js',
            ));
            $main->assign('useUI', true);
@@ -489,6 +485,7 @@ switch ($action) {
         $t_form->assign('CSRFToken', $_SESSION['CSRFToken']);
         $t_form->assign('query', XSSHelpers::xscrub($_GET['query']));
         $t_form->assign('indicators', XSSHelpers::xscrub($_GET['indicators']));
+        $t_form->assign('colors', XSSHelpers::xscrub($_GET['colors']));
         $t_form->assign('title', XSSHelpers::sanitizeHTML($_GET['title']));
         $t_form->assign('version', (int)$_GET['v']);
         $t_form->assign('empMembership', $login->getMembership());
@@ -558,6 +555,7 @@ switch ($action) {
 
 $main->assign('leafSecure', XSSHelpers::sanitizeHTML($settings['leafSecure']));
 $main->assign('login', $t_login->fetch('login.tpl'));
+$main->assign('empMembership', $login->getMembership());
 $t_menu->assign('action', XSSHelpers::xscrub($action));
 $t_menu->assign('orgchartPath', Config::$orgchartPath);
 $t_menu->assign('empMembership', $login->getMembership());
