@@ -92,19 +92,30 @@ RUN apt-get update
 RUN pecl install sqlsrv pdo_sqlsrv
 
 RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated msodbcsql17
-# optional: for bcp and sqlcmd
 RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated mssql-tools
-RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
-# RUN source ~/.bashrc
+# The below may not be necessary.  
+RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc 
+# Sets the path for mssql tools
 ENV PATH $PATH:/opt/mssql-tools/bin
 
+# Setting up kerberos 5
+# ARGs are for local testing only.  These credentials should not be backed into the image.
+ARG krb_user
+ARG krb_pass
+ARG krb_domain
+ENV KRB_USER ${krb_user}
+ENV KRB_PASS ${krb_pass}
+ENV KRB_DOMAIN ${krb_domain}
+ENV KRB_LOGIN ${krb_user}@${krb_domain}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get install -y ntp krb5-config krb5-user libssl-dev realmd 
+COPY etc/krb5.conf /etc/krb5.conf
+ENV KRB5_CONFIG=/etc/krb5.conf
+COPY etc/init_scripts/krb_init.sh /etc/init.d/krb_init.sh
+RUN chmod +x /etc/init.d/krb_init.sh
+RUN mkdir /etc/krb5.conf.d
+RUN apt-get update && apt-get --allow-unauthenticated -y upgrade
 
 
-# RUN apt-get -y install gnupg2
-# RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-# RUN curl https://packages.microsoft.com/config/debian/9/prod.list > /etc/apt/sources.list.d/mssql-release.list
-# RUN pecl install sqlsrv pdo_sqlsrv
-
-# ENV PATH=$PATH:/opt/mssql-tools/bin
 
 
