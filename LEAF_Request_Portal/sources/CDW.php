@@ -256,4 +256,16 @@ class CDW
         }
     }
 
+    public function deleteVaccine($recordID = null) {
+        if ($recordID != null) {
+            $strVar = array(
+                ':vaccineInfoID' => $recordID
+            );
+            $strSQL = "DELETE FROM vaccine_info WHERE vaccineInfoID = :vaccineInfoID";
+            $res = $this->db->prepared_query($strSQL, $strVar);
+
+            return $res;
+        }
+    }
+
 }

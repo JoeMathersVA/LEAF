@@ -40,7 +40,7 @@ class CDWdataController extends RESTfulResponse
 
     public function get($act)
     {
-        $cdw = $this->cdw;
+        //$this->verifyVaccineReferrer();
 
         $this->index['GET'] = new ControllerMap();
         $cm = $this->index['GET'];
@@ -54,8 +54,6 @@ class CDWdataController extends RESTfulResponse
     public function post($act)
     {
         $cdw = $this->cdw;
-
-        //$this->verifyVaccineReferrer();
 
         $this->index['POST'] = new ControllerMap();
         $cm = $this->index['POST'];
@@ -82,8 +80,6 @@ class CDWdataController extends RESTfulResponse
 
     public function delete($act)
     {
-        $db = $this->db;
-        $login = $this->login;
         $cdw = $this->cdw;
 
         //$this->verifyVaccineReferrer();
