@@ -20,7 +20,6 @@ if (!class_exists('Orgchart\Config'))
     require_once __DIR__ . '/' . Config::$orgchartPath . '/config.php';
     require_once __DIR__ . '/' . Config::$orgchartPath . '/sources/Login.php';
     require_once __DIR__ . '/' . Config::$orgchartPath . '/sources/Employee.php';
-    require_once __DIR__ . '/' . Config::$orgchartPath . '/sources/NationalEmployee.php';
  }
 
 class CDW
@@ -29,28 +28,20 @@ class CDW
 
     private $db;
     private $db_nexus;
-    private $db_nat;
     private $db_cdw;
 
     private $login;
     private $employee;
-    private $nat_employee;
-
-    private $dataActionLogger;
 
     public function __construct($db, $login)
     {
         $this->db = $db;
         $this->login = $login;
         // $this->db_cdw = new DB_CDW();
-
         $config = new Config();
         $this->db_nexus = new DB($config->phonedbHost, $config->phonedbUser, $config->phonedbPass, $config->phonedbName);
-        $this->db_nat = new DB(DIRECTORY_HOST, DIRECTORY_USER, DIRECTORY_PASS, DIRECTORY_DB);
-        $login_nat = new Login($this->db_nat, $this->db_nat);
 
         $this->employee = new Orgchart\Employee($this->db_nexus, $login);
-        $this->nat_employee = new Orgchart\NationalEmployee($this->db_nat, $login_nat);
 
         $this->siteRoot = "https://" . HTTP_HOST . dirname($_SERVER['REQUEST_URI']) . '/';
     }
@@ -59,6 +50,10 @@ class CDW
         if ($empEmail === null) {
             return 'Invalid Email.';
         }
+
+        /**
+         * TODO: Get Vaccine status information from CDW
+         */
     }
 
     public function modifyVaccine($recordID = null) {
@@ -119,14 +114,14 @@ class CDW
                     'dataUploadDT' => null
                 );
 
-                $tmpUserInfo = $this->nat_employee->lookupLogin($tmp['userID']);
+                $tmpUserInfo = $this->employee->lookupLogin($tmp['userID']);
                 $vars = array(
                     ':empUID' => $tmpUserInfo[0]['empUID'],
                     ':email_indicator' => 6
                 );
                 $strSQL = 'SELECT data AS email FROM employee_data '.
                             'WHERE empUID=:empUID AND indicatorID=:email_indicator';
-                $resUserEmail = $this->db_nat->prepared_query($strSQL, $vars);
+                $resUserEmail = $this->db_nexus->prepared_query($strSQL, $vars);
 
                 $tmpUserID = $tmpUserInfo[0]['userName'];
                 $packet['employeeEmail'] = $resUserEmail[0]['email'];
@@ -166,15 +161,14 @@ class CDW
             switch ($tmp['indicatorID']) {
                 case 48:
                     $tmpLocalSuperInfo = $this->employee->lookupEmpUID($tmp['data']);
-                    $tmpSuperInfo = $this->nat_employee->lookupLogin($tmpLocalSuperInfo[0]['userName']);
                     $vars = array(
-                        ':empUID' => $tmpSuperInfo[0]['empUID'],
+                        ':empUID' => $tmpLocalSuperInfo[0]['empUID'],
                         ':email_indicator' => 6
                     );
                     $strSQL = 'SELECT data AS email '.
                         'FROM employee_data WHERE empUID=:empUID AND indicatorID=:email_indicator';
-                    $resSuperEmail = $this->db_nat->prepared_query($strSQL, $vars);
-                    $tmpSuperID = $tmpSuperInfo[0]['userName'];
+                    $resSuperEmail = $this->db_nexus->prepared_query($strSQL, $vars);
+                    $tmpSuperID = $tmpLocalSuperInfo[0]['userName'];
                     $packet['supervisorEmail'] = $resSuperEmail[0]['email'];
                     $packet['supervisorAD'] = $tmpSuperID;
                     break;
@@ -218,16 +212,22 @@ class CDW
                 ':perjuryStatus' => $vaccine['perjuryStatus'],
                 ':releaseStatus' => $vaccine['releaseStatus'],
                 ':vaccineDocDate' => $vaccine['vaccineDocDate'],
-                ':submittedDate' => $vaccine['submittedDate']);
+                ':submittedDate' => $vaccine['submittedDate'],
+                ':lastModified' => time());
             $strSQL = 'REPLACE INTO vaccine_info (vaccineInfoID, employeeEmail, employeeAD, '.
                         'supervisorEmail, supervisorAD, vaccinePathway,vaccineName, doseOneDate, '.
                         'doseOneLocation, doseTwoDate, doseTwoLocation, vaccineDocType, exceptionType, '.
-                        'perjuryStatus, releaseStatus, vaccineDocDate, submittedDate) '.
+                        'perjuryStatus, releaseStatus, vaccineDocDate, submittedDate, lastModified) '.
                         'VALUES (:vaccineInfoID, :employeeEmail, :employeeAD, '.
                             ':supervisorEmail, :supervisorAD, :vaccinePathway, :vaccineName, :doseOneDate, '.
                             ':doseOneLocation, :doseTwoDate, :doseTwoLocation, :vaccineDocType, :exceptionType, '.
-                            ':perjuryStatus, :releaseStatus, :vaccineDocDate, :submittedDate)';
+                            ':perjuryStatus, :releaseStatus, :vaccineDocDate, :submittedDate, :lastModified)';
             $this->db->prepared_query($strSQL, $vars);
+
+            /**
+             * TODO: Add push of data to CDW and update local record
+             * TODO: that it was successfully pushed (dataUploadDT)
+             */
         }
     }
 

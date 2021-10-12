@@ -71,7 +71,7 @@ class CDWdataController extends RESTfulResponse
             return $cdw->modifyVaccine();
         });
 
-        /** Expects Record ID number */
+        /** Modify Vaccine - Expects Record ID number */
         $cm->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
             return $cdw->modifyVaccine(XSSHelpers::xscrub($args[0]));
         });
