@@ -48,10 +48,6 @@ class CDWdataController extends RESTfulResponse
             return $this->API_VERSION;
         });
 
-        $cm->register('cdw/vaccine/status', function () use ($cdw) {
-            return $cdw->getVaccineStatus();
-        });
-
         return $cm->runControl($act['key'], $act['args']);
     }
 
@@ -64,6 +60,11 @@ class CDWdataController extends RESTfulResponse
         $this->index['POST'] = new ControllerMap();
         $cm = $this->index['POST'];
         $cm->register('cdw', function ($args) {
+        });
+
+        /** Validate Vaccine Status in CDW - Expects Valid Email Address and Optional Pathway*/
+        $cm->register('cdw/vaccine/status', function () use ($cdw) {
+            return $cdw->getVaccineStatus();
         });
 
         /** Modify Vaccine when record ID unknown **/

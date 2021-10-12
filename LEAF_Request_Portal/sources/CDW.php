@@ -37,7 +37,7 @@ class CDW
     {
         $this->db = $db;
         $this->login = $login;
-        // $this->db_cdw = new DB_CDW();
+        $this->db_cdw = new DB_CDW();
         $config = new Config();
         $this->db_nexus = new DB($config->phonedbHost, $config->phonedbUser, $config->phonedbPass, $config->phonedbName);
 
@@ -46,14 +46,36 @@ class CDW
         $this->siteRoot = "https://" . HTTP_HOST . dirname($_SERVER['REQUEST_URI']) . '/';
     }
 
-    public function getVaccineStatus($empEmail = null) {
-        if ($empEmail === null) {
-            return 'Invalid Email.';
+    public function getVaccineStatus() {
+        $empEmail = XSSHelpers::xssafe($_POST["employee_email"]);
+        $pathway = (int)$_POST["vaccine_pathway"];
+        if (filter_var($empEmail, \FILTER_VALIDATE_EMAIL) === false) {
+            return 'Invalid Email';
+        }
+        if ($pathway > 3) {
+            return "Invalid Pathway";
         }
 
-        /**
-         * TODO: Get Vaccine status information from CDW
-         */
+        $strVars = array(
+            ':employeeEmail' => $empEmail
+        );
+        $strSQL = "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
+            "[VaccineDateDose2],[VaccineName],[VaccineStatus],[VaccineDose1Location],[VaccineDose2Location],".
+            "[Dose1LocationName],[Dose2LocationName],[HRType],[ComplianceType],[HCP],[SourceLastModifiedDate],".
+            "[SourceDataUploadDate],[NonComplyReason],[VaccineInfoID],[VaccinePathway],[LastModifiedDate] ";
+        if ($pathway != 2) {
+            $strSQL .= "FROM [BISL_OHRS].[Model].[VaccineCompliance_Test] ";
+        } else {
+            $strSQL .= "FROM [BISL_OHRS].[Model].[VaccineCompliance] ";
+        }
+        $strSQL .= "WHERE [EmployeeEmail] = `:employeeEmail`";
+        $res = $this->db_cdw->prepared_query($strSQL, $strVars);
+
+        if (count($res) > 0) {
+            return $res[0];
+        } else {
+            return "No User Found";
+        }
     }
 
     public function modifyVaccine($recordID = null) {
@@ -179,17 +201,20 @@ class CDW
                 case 188:
                 case 195:
                 case 265:
-                    $packet[$tmp['indicatorID']] = $tmp['data'];
+                    $indicatorID = $tmp['indicatorID'];
+                    $packet[$indicators[$indicatorID]] = $tmp['data'];
                     break;
                 case 106:
-                    $packet[$tmp['indicatorID']] = date("Y-m-d H:i:s",$tmp['timestamp']);
+                    $indicatorID = $tmp['indicatorID'];
+                    $packet[$indicators[$indicatorID]] = date("Y-m-d H:i:s",$tmp['timestamp']);
                     break;
                 case 210:
                 case 242:
+                    $indicatorID = $tmp['indicatorID'];
                     if ($tmp['data'] !== null) {
-                        $packet[$tmp['indicatorID']] = 1;
+                        $packet[$indicators[$indicatorID]] = 1;
                     } else {
-                        $packet[$tmp['indicatorID']] = 0;
+                        $packet[$indicators[$indicatorID]] = 0;
                     }
                     break;
             }
