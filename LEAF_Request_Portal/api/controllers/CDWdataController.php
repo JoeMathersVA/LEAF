@@ -3,7 +3,6 @@
  * As a work of the United States government, this project is in the public domain within the United States.
  */
 
-require '../db_mysql.php';
 require '../sources/CDW.php';
 
 if (!class_exists('XSSHelpers'))
@@ -30,6 +29,7 @@ class CDWdataController extends RESTfulResponse
 
     public function __construct($db, $login)
     {
+        $this->db = $db;
         $this->login = $login;
         $this->cdw = new CDW($db, $login);
     }
@@ -41,11 +41,19 @@ class CDWdataController extends RESTfulResponse
     public function get($act)
     {
         //$this->verifyVaccineReferrer();
+        $db = $this->db;
+        $login = $this->login;
+        $cdw = $this->cdw;
 
         $this->index['GET'] = new ControllerMap();
         $cm = $this->index['GET'];
         $cm->register('cdw/version', function () {
             return $this->API_VERSION;
+        });
+
+        /** Modify Vaccine when record ID unknown **/
+        $cm->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
+            return $cdw->modifyVaccine((int)$args[0]);
         });
 
         return $cm->runControl($act['key'], $act['args']);
@@ -65,16 +73,6 @@ class CDWdataController extends RESTfulResponse
             return $cdw->getVaccineStatus();
         });
 
-        /** Modify Vaccine when record ID unknown **/
-        $cm->register('cdw/vaccine/submit', function ($args) use ($cdw) {
-            return $cdw->modifyVaccine();
-        });
-
-        /** Modify Vaccine - Expects Record ID number */
-        $cm->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
-            return $cdw->modifyVaccine(XSSHelpers::xscrub($args[0]));
-        });
-
         return $this->index['POST']->runControl($act['key'], $act['args']);
     }
 
@@ -90,7 +88,7 @@ class CDWdataController extends RESTfulResponse
 
         // Expected digit is LEAF Record ID to be removed from CDW Uploads
         $this->index['DELETE']->register('cdw/[digit]/remove', function ($args) use ($cdw) {
-            return $cdw->deleteVaccine(XSSHelpers::xscrub($args[0]));
+            return $cdw->deleteVaccine((int)$args[0]);
         });
 
         return $this->index['DELETE']->runControl($act['key'], $act['args']);

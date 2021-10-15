@@ -315,13 +315,36 @@ class Employee extends Data
         {
             return $this->cache[$cacheHash];
         }
-        $sql = "SELECT * FROM {$this->tableName}
-                    WHERE userName = :login
-                    	AND deleted = 0
-                    {$this->limit}";
 
         $vars = array(':login' => $login);
-        $result = $this->db->prepared_query($sql, $vars);
+        $strSQL = "SELECT * FROM {$this->tableName} WHERE userName = :login AND deleted = 0 {$this->limit}";
+        $result = $this->db->prepared_query($strSQL, $vars);
+
+        $this->cache[$cacheHash] = $result;
+
+        return $result;
+    }
+
+    public function lookupDelLogin($login)
+    {
+        $cacheHash = "lookupDelLogin{$login}";
+        if (isset($this->cache[$cacheHash]))
+        {
+            return $this->cache[$cacheHash];
+        }
+
+        $vars = array(':login' => $login);
+        $strSQL = "SELECT * FROM {$this->tableName} WHERE userName = :login {$this->limit}";
+        $result = $this->db->prepared_query($strSQL, $vars);
+
+        if(isset($result[0])) {
+            $vars = array(':empUID' => $result[0]['empUID']);
+            $strSQL = "SELECT data as email FROM {$this->dataTable} WHERE empUID=:empUID AND indicatorID=6";
+            $resEmail = $this->db->prepared_query($strSQL, $vars);
+            if (isset($result[0]) && isset($resEmail[0])) {
+                $result[0] = array_merge($result[0], $resEmail[0]);
+            }
+        }
 
         $this->cache[$cacheHash] = $result;
 
@@ -339,20 +362,47 @@ class Employee extends Data
             return $this->cache["lookupEmpUID_{$empUID}"];
         }
 
-        $sql = "SELECT * FROM {$this->tableName}
-                    WHERE empUID = :empUID
-                    	AND deleted = 0";
-
         $vars = array(':empUID' => $empUID);
-        $result = $this->db->prepared_query($sql, $vars);
-        $resEmail = $this->db->prepared_query("SELECT data as email FROM {$this->dataTable}
-                                                WHERE empUID=:empUID
-                                                    AND indicatorID=6", $vars);
-        if(isset($result[0]) && isset($resEmail[0])) {
-            $result[0] = array_merge($result[0], $resEmail[0]);
+        $strSQL = "SELECT * FROM {$this->tableName} WHERE empUID = :empUID AND deleted = 0";
+        $result = $this->db->prepared_query($strSQL, $vars);
+
+        if(isset($result[0])) {
+            $strSQL = "SELECT data as email FROM {$this->dataTable} WHERE empUID=:empUID AND indicatorID=6";
+            $resEmail = $this->db->prepared_query($strSQL, $vars);
+            if (isset($result[0]) && isset($resEmail[0])) {
+                $result[0] = array_merge($result[0], $resEmail[0]);
+            }
         }
 
         $this->cache["lookupEmpUID_{$empUID}"] = $result;
+
+        return $result;
+    }
+
+    public function lookupDelEmpUID($empUID)
+    {
+        if (!is_numeric($empUID))
+        {
+            return array();
+        }
+        if (isset($this->cache["lookupDelEmpUID_{$empUID}"]))
+        {
+            return $this->cache["lookupDelEmpUID_{$empUID}"];
+        }
+
+        $vars = array(':empUID' => $empUID);
+        $strSQL = "SELECT * FROM {$this->tableName} WHERE empUID = :empUID";
+        $result = $this->db->prepared_query($strSQL, $vars);
+
+        if(isset($result[0])) {
+            $strSQL = "SELECT data as email FROM {$this->dataTable} WHERE empUID=:empUID AND indicatorID=6";
+            $resEmail = $this->db->prepared_query($strSQL, $vars);
+            if (isset($result[0]) && isset($resEmail[0])) {
+                $result[0] = array_merge($result[0], $resEmail[0]);
+            }
+        }
+
+        $this->cache["lookupDelEmpUID_{$empUID}"] = $result;
 
         return $result;
     }
