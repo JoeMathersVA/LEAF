@@ -11,7 +11,7 @@
 $currDir = dirname(__FILE__);
 
 require_once $currDir . '/../globals.php';
-//require_once $currDir . '/../db_cdw_sqlsrv.php';
+require_once $currDir . '/../db_cdw_sqlsrv.php';
 if (!class_exists('XSSHelpers')) {
     require_once dirname(__FILE__) . '/../../libs/php-commons/XSSHelpers.php';
 }
@@ -48,12 +48,8 @@ class CDW
 
     public function getVaccineStatus() {
         $empEmail = XSSHelpers::xssafe($_POST["employee_email"]);
-        $pathway = (int)$_POST["vaccine_pathway"];
         if (filter_var($empEmail, \FILTER_VALIDATE_EMAIL) === false) {
             return 'Invalid Email';
-        }
-        if ($pathway > 3) {
-            return "Invalid Pathway";
         }
 
         $strVars = array(
@@ -78,8 +74,8 @@ class CDW
         if ($recordID === null) {
             return "No Record Found";
         }
-        $indicatorIDs = '242,261,42,262,48,195, 183, 187, 184, 188, 104, 265, 210, 282, 106';
-        $strVar = array(
+        $indicatorIDs = '242,261,42,262,48,195,183,187,184,188,104,265,210,282,106';
+        $strVars = array(
             ':recordID' => $recordID
         );
         $strSQL = "SELECT rec.recordID, rec.userID, dt.data, dt.timestamp, indi.indicatorID, rec.submitted ".
@@ -97,7 +93,7 @@ class CDW
                 "ORDER BY ".
                     "recordID, indicatorID";
 
-        $res = $this->db->prepared_query($strSQL, $strVar);
+        $res = $this->db->prepared_query($strSQL, $strVars);
 
         $packet = array(
             'vaccineInfoID' => $recordID,
@@ -141,20 +137,20 @@ class CDW
             $packet['vaccinePathway'] = 'Exemption';
         }
 
+        $indicators = array(
+            48  => 'Supervisor',
+            104 => 'vaccineDocType',
+            106 => 'vaccineDocDate', // datetime
+            183 => 'doseOneDate',
+            184 => 'doseTwoDate',
+            187 => 'doseOneLocation',
+            188 => 'doseTwoLocation',
+            195 => 'vaccineName',
+            210 => 'perjuryStatus', // not null = 1 else 0
+            242 => 'releaseStatus', // not null = 1 else 0
+            265 => 'exceptionType'
+        );
         foreach ($res as $tmp) {
-            $indicators = array(
-                48  => 'Supervisor',
-                104 => 'vaccineDocType',
-                106 => 'vaccineDocDate', // datetime
-                183 => 'doseOneDate',
-                184 => 'doseTwoDate',
-                187 => 'doseOneLocation',
-                188 => 'doseTwoLocation',
-                195 => 'vaccineName',
-                210 => 'perjuryStatus', // not null = 1 else 0
-                242 => 'releaseStatus', // not null = 1 else 0
-                265 => 'exceptionType'
-            );
             switch ($tmp['indicatorID']) {
                 case 48:
                     $resSuper = $this->employee->lookupDelEmpUID($tmp['data']);
@@ -199,24 +195,32 @@ class CDW
             ':vaccineDocDate' => $packet['vaccineDocDate'],
             ':submittedDate' => $packet['submittedDate'],
             ':lastModified' => time());
-        $strSQL = 'REPLACE INTO vaccine_info (vaccineInfoID, employeeEmail, employeeAD, '.
-            'supervisorEmail, supervisorAD, vaccinePathway,vaccineName, doseOneDate, '.
-            'doseOneLocation, doseTwoDate, doseTwoLocation, vaccineDocType, exceptionType, '.
-            'perjuryStatus, releaseStatus, vaccineDocDate, submittedDate, lastModified) '.
-            'VALUES (:vaccineInfoID, :employeeEmail, :employeeAD, '.
+        $strSQL = 'IF EXISTS (SELECT [PK_VaccineInfo] FROM [BISL_OHRS].[Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID) '.
+            'UPDATE [BISL_OHRS].[Import].[LEAF_Vaccine_Info] '.
+            'SET [PK_VaccineInfo] = :vaccineInfoID, [employeeEmail] = :employeeEmail, [employeeAD] = :employeeAD, '.
+            '[supervisorEmail] = :supervisorEmail, [supervisorAD] = :supervisorAD, [vaccinePathway] = :vaccinePathway, '.
+            '[vaccineName] = :vaccineName, [doseOneDate] = :doseOneDate, [doseOneLocation] = :doseOneLocation, '.
+            '[doseTwoDate] = :doseTwoDate, [doseTwoLocation] = :doseTwoLocation, [vaccineDocType] = :vaccineDocType, '.
+            '[exceptionType] = :exceptionType, [perjuryStatus] = :perjuryStatus, [releaseStatus] = :releaseStatus, '.
+            '[vaccineDocDate] = :vaccineDocDate, [submittedDate] = :submittedDate, [lastModified] = :lastModified '.
+            'WHERE [PK_VaccineInfo] = :vaccineInfoID '.
+            'ELSE INSERT INTO [BISL_OHRS].[Import].[LEAF_Vaccine_Info] ([PK_VaccineInfo], [employeeEmail], [employeeAD], [supervisorEmail], '.
+            '[supervisorAD], [vaccinePathway], [vaccineName], [doseOneDate], [doseOneLocation], [doseTwoDate], [doseTwoLocation], '.
+            '[vaccineDocType], [exceptionType], [perjuryStatus], [releaseStatus], [vaccineDocDate], [submittedDate], [lastModified], '.
+            '[dataUploadDT]) VALUES (:vaccineInfoID, :employeeEmail, :employeeAD, '.
             ':supervisorEmail, :supervisorAD, :vaccinePathway, :vaccineName, :doseOneDate, '.
             ':doseOneLocation, :doseTwoDate, :doseTwoLocation, :vaccineDocType, :exceptionType, '.
             ':perjuryStatus, :releaseStatus, :vaccineDocDate, :submittedDate, :lastModified)';
-        $this->db->prepared_query($strSQL, $vars);
+        $this->db_cdw->prepared_query($strSQL, $vars);
     }
 
     public function deleteVaccine($recordID = null) {
         if ($recordID != null) {
-            $strVar = array(
+            $strVars = array(
                 ':vaccineInfoID' => $recordID
             );
-            $strSQL = "DELETE FROM vaccine_info WHERE vaccineInfoID = :vaccineInfoID";
-            $res = $this->db->prepared_query($strSQL, $strVar);
+            $strSQL = 'DELETE FROM [BISL_OHRS].[Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID';
+            $res = $this->db_cdw->prepared_query($strSQL, $strVars);
 
             return $res;
         } else {
