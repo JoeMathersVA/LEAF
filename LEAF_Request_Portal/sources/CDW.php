@@ -55,13 +55,12 @@ class CDW
         $strVars = array(
             ':employeeEmail' => $empEmail
         );
-        $strSQL = "DECLARE @employeeEmail varchar(255) = :employeeEmail ".
-            "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
+        $strSQL = "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
             "[VaccineDateDose2],[VaccineName],[VaccineStatus],[VaccineDose1Location],[VaccineDose2Location],".
             "[Dose1LocationName],[Dose2LocationName],[HRType],[ComplianceType],[HCP],[SourceLastModifiedDate],".
             "[SourceDataUploadDate],[NonComplyReason],[VaccineInfoID],[VaccinePathway],[LastModifiedDate] ".
             "FROM [BISL_OHRS].[Model].[VaccineCompliance] ".
-            "WHERE [EmployeeEmail] = @employeeEmail";
+            "WHERE [EmployeeEmail] = :employeeEmail";
         $res = $this->db_cdw->prepared_query($strSQL, $strVars);
 
         if (count($res) > 0) {
@@ -71,9 +70,25 @@ class CDW
         }
     }
 
+    public function vaccineBulkExport() {
+	if (!$this->login->checkGroup(1))
+        {
+            return 'Admin Only';
+        }
+	$strSQL = "SELECT recordID FROM records WHERE submitted > 0 AND deleted = 0";
+	$res = $this->db->query($strSQL);
+	foreach ($res as $recordID) {
+	    modifyVaccine($recordID['recordID']);
+	}
+    }
+	
     public function modifyVaccine($recordID = null) {
         if ($recordID === null) {
             return "No Record Found";
+        }
+	if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+        {
+            return 0;
         }
         $indicatorIDs = '242,261,42,262,48,195,183,187,184,188,104,265,210,282,106';
         $strVars = array(
@@ -92,7 +107,7 @@ class CDW
                     "AND rec.deleted = 0 ".
                     "AND rec.recordID = :recordID ".
                 "ORDER BY ".
-                    "recordID, indicatorID";
+                    "recordID, timestamp DESC";
 
         $res = $this->db->prepared_query($strSQL, $strVars);
 
@@ -114,7 +129,7 @@ class CDW
             'perjuryStatus' => 0,
             'releaseStatus' => 0,
             'vaccineDocDate' => null,
-            'lastModified' => null,
+            'lastModified' => date("Y-m-d H:i:s",$res[0]['timestamp']),
             'dataUploadDT' => null
         );
 
@@ -122,12 +137,12 @@ class CDW
         $packet['employeeEmail'] = $resUserEmail[0]['email'];
         $packet['employeeAD'] = $res[0]['userID'];
 
+	$forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
         $vars = array(
-            ':recordID' => $recordID,
-            ':forms' => array('form_2e22e', 'form_2e050', 'form_6958f'));
+            ':recordID' => $recordID);
         $strSQL = "SELECT categoryID FROM category_count ".
             "WHERE recordID = :recordID ".
-            "AND categoryID IN :forms";
+            "AND categoryID IN (". $forms .")";
         $resPath = $this->db->prepared_query($strSQL, $vars);
 
         if ($resPath[0]['categoryID'] === 'form_2e22e') {
@@ -195,7 +210,8 @@ class CDW
             ':releaseStatus' => $packet['releaseStatus'],
             ':vaccineDocDate' => $packet['vaccineDocDate'],
             ':submittedDate' => $packet['submittedDate'],
-            ':lastModified' => time());
+            ':lastModified' => $packet['lastModified'],
+	    ':dataUploadDT' => $packet['dataUploadDT']);
         $strSQL = "DECLARE @vaccineInfoID int = :vaccineInfoID,@employeeEmail varchar(255) = :employeeEmail,@employeeAD varchar(255) = :employeeAD,".
 	            "@supervisorEmail varchar(255) = :supervisorEmail,@supervisorAD varchar(255) = :supervisorAD,@vaccinePathway varchar(255) = :vaccinePathway,".
 	            "@vaccineName varchar(255) = :vaccineName,@doseOneDate varchar(255) = :doseOneDate,@doseOneLocation varchar(255) = :doseOneLocation,@doseTwoDate varchar(255) = :doseTwoDate,".
@@ -224,11 +240,15 @@ class CDW
     }
 
     public function deleteVaccine($recordID = null) {
+	if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+        {
+            return 0;
+        }
         if ($recordID != null) {
             $strVars = array(
                 ':vaccineInfoID' => $recordID
             );
-            $strSQL = 'DELETE FROM [BISL_OHRS].[Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID';
+            $strSQL = 'DELETE FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID';
             $res = $this->db_cdw->prepared_query($strSQL, $strVars);
 
             return $res;
