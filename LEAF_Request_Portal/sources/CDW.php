@@ -37,7 +37,7 @@ class CDW
     {
         $this->db = $db;
         $this->login = $login;
-        //$this->db_cdw = new DB_CDW('');
+        $this->db_cdw = new DB_CDW('BISL_OHRS');
         $config = new Config();
         $this->db_nexus = new DB($config->phonedbHost, $config->phonedbUser, $config->phonedbPass, $config->phonedbName);
 
@@ -55,12 +55,13 @@ class CDW
         $strVars = array(
             ':employeeEmail' => $empEmail
         );
-        $strSQL = "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
+        $strSQL = "DECLARE @employeeEmail varchar(255) = :employeeEmail ".
+            "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
             "[VaccineDateDose2],[VaccineName],[VaccineStatus],[VaccineDose1Location],[VaccineDose2Location],".
             "[Dose1LocationName],[Dose2LocationName],[HRType],[ComplianceType],[HCP],[SourceLastModifiedDate],".
             "[SourceDataUploadDate],[NonComplyReason],[VaccineInfoID],[VaccinePathway],[LastModifiedDate] ".
             "FROM [BISL_OHRS].[Model].[VaccineCompliance] ".
-            "WHERE [EmployeeEmail] = :employeeEmail";
+            "WHERE [EmployeeEmail] = @employeeEmail";
         $res = $this->db_cdw->prepared_query($strSQL, $strVars);
 
         if (count($res) > 0) {
@@ -195,22 +196,30 @@ class CDW
             ':vaccineDocDate' => $packet['vaccineDocDate'],
             ':submittedDate' => $packet['submittedDate'],
             ':lastModified' => time());
-        $strSQL = 'IF EXISTS (SELECT [PK_VaccineInfo] FROM [BISL_OHRS].[Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID) '.
-            'UPDATE [BISL_OHRS].[Import].[LEAF_Vaccine_Info] '.
-            'SET [PK_VaccineInfo] = :vaccineInfoID, [employeeEmail] = :employeeEmail, [employeeAD] = :employeeAD, '.
-            '[supervisorEmail] = :supervisorEmail, [supervisorAD] = :supervisorAD, [vaccinePathway] = :vaccinePathway, '.
-            '[vaccineName] = :vaccineName, [doseOneDate] = :doseOneDate, [doseOneLocation] = :doseOneLocation, '.
-            '[doseTwoDate] = :doseTwoDate, [doseTwoLocation] = :doseTwoLocation, [vaccineDocType] = :vaccineDocType, '.
-            '[exceptionType] = :exceptionType, [perjuryStatus] = :perjuryStatus, [releaseStatus] = :releaseStatus, '.
-            '[vaccineDocDate] = :vaccineDocDate, [submittedDate] = :submittedDate, [lastModified] = :lastModified '.
-            'WHERE [PK_VaccineInfo] = :vaccineInfoID '.
-            'ELSE INSERT INTO [BISL_OHRS].[Import].[LEAF_Vaccine_Info] ([PK_VaccineInfo], [employeeEmail], [employeeAD], [supervisorEmail], '.
-            '[supervisorAD], [vaccinePathway], [vaccineName], [doseOneDate], [doseOneLocation], [doseTwoDate], [doseTwoLocation], '.
-            '[vaccineDocType], [exceptionType], [perjuryStatus], [releaseStatus], [vaccineDocDate], [submittedDate], [lastModified], '.
-            '[dataUploadDT]) VALUES (:vaccineInfoID, :employeeEmail, :employeeAD, '.
-            ':supervisorEmail, :supervisorAD, :vaccinePathway, :vaccineName, :doseOneDate, '.
-            ':doseOneLocation, :doseTwoDate, :doseTwoLocation, :vaccineDocType, :exceptionType, '.
-            ':perjuryStatus, :releaseStatus, :vaccineDocDate, :submittedDate, :lastModified)';
+        $strSQL = "DECLARE @vaccineInfoID int = :vaccineInfoID,@employeeEmail varchar(255) = :employeeEmail,@employeeAD varchar(255) = :employeeAD,".
+	            "@supervisorEmail varchar(255) = :supervisorEmail,@supervisorAD varchar(255) = :supervisorAD,@vaccinePathway varchar(255) = :vaccinePathway,".
+	            "@vaccineName varchar(255) = :vaccineName,@doseOneDate varchar(255) = :doseOneDate,@doseOneLocation varchar(255) = :doseOneLocation,@doseTwoDate varchar(255) = :doseTwoDate,".
+	            "@doseTwoLocation varchar(255) = :doseTwoLocation,@vaccineDocType varchar(255) = :vaccineDocType,@exceptionType varchar(255) = :exceptionType,".
+	            "@perjuryStatus varchar(255) = :perjuryStatus,@releaseStatus varchar(255) = :releaseStatus,@vaccineDocDate varchar(255) = :vaccineDocDate,".
+	            "@submittedDate varchar(255) =:submittedDate,@lastModified varchar(255) = :lastModified,@dataUploadDT varchar(255) = :dataUploadDT ".
+	        "IF EXISTS (SELECT [PK_VaccineInfo] FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = @vaccineInfoID) ".
+		        "UPDATE [Import].[LEAF_Vaccine_Info] ".
+		        "SET [PK_VaccineInfo] = @vaccineInfoID,[employeeEmail] = @employeeEmail,[employeeAD] = @employeeAD,".
+		        "[supervisorEmail] = @supervisorEmail,[supervisorAD] = @supervisorAD,[vaccinePathway] = @vaccinePathway,".
+		        "[vaccineName] = @vaccineName,[doseOneDate] = @doseOneDate,[doseOneLocation] = @doseOneLocation,".
+		        "[doseTwoDate] = @doseTwoDate,[doseTwoLocation] = @doseTwoLocation,[vaccineDocType] = @vaccineDocType,".
+		        "[exceptionType] = @exceptionType,[perjuryStatus] = @perjuryStatus,[releaseStatus] = @releaseStatus,".
+		        "[vaccineDocDate] = @vaccineDocDate,[submittedDate] = @submittedDate,[lastModified] = @lastModified,".
+		        "[dataUploadDT] = @dataUploadDT ".
+		        "WHERE [PK_VaccineInfo] = @vaccineInfoID ".
+	        "ELSE ".
+		        "INSERT INTO [Import].[LEAF_Vaccine_Info] ([PK_VaccineInfo],[employeeEmail],[employeeAD], [supervisorEmail],".
+		        "[supervisorAD],[vaccinePathway],[vaccineName],[doseOneDate],[doseOneLocation],[doseTwoDate], [doseTwoLocation],".
+		        "[vaccineDocType],[exceptionType],[perjuryStatus],[releaseStatus],[vaccineDocDate],[submittedDate], [lastModified],".
+		        "[dataUploadDT]) VALUES (@vaccineInfoID,@employeeEmail,@employeeAD,".
+		        "@supervisorEmail,@supervisorAD,@vaccinePathway,@vaccineName,@doseOneDate,".
+		        "@doseOneLocation,@doseTwoDate,@doseTwoLocation,@vaccineDocType,@exceptionType,".
+		        "@perjuryStatus,@releaseStatus,@vaccineDocDate,@submittedDate,@lastModified,@dataUploadDT)";
         $this->db_cdw->prepared_query($strSQL, $vars);
     }
 
