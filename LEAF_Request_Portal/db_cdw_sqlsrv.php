@@ -19,7 +19,7 @@ class DB_CDW
 
     private $log = array('<span style="color: red">Debug Log is ON</span>');    // error log for debugging
 
-    private $debug = 2;             // Are we debugging?
+    private $debug = false;             // Are we debugging?
 
     private $time = 0;
 
