@@ -14,12 +14,12 @@ class DB_CDW
 
     private $dbHost;
     private $dbName;
-    private $dbUser;
-    private $dbPass;
+
+    private $connectionInfo;
 
     private $log = array('<span style="color: red">Debug Log is ON</span>');    // error log for debugging
 
-    private $debug = false;             // Are we debugging?
+    private $debug = 2;             // Are we debugging?
 
     private $time = 0;
 
@@ -30,58 +30,27 @@ class DB_CDW
     private $isConnected = false;
 
     // Connect to the database
-    public function __construct($database, $abortOnError = false)
+    public function __construct($database)
     {
         $this->dbHost = getenv('CDW_HOST', true);
-        $this->dbUser = getenv('CDW_USER', true);
-        $this->dbPass = getenv('CDW_PASSWORD', true);
         $this->dbName = $database;
 
         $this->isConnected = true;
         try
         {
-            $this->db = new PDO(
-                "sqlsrv:Server={$this->dbHost};Database={$this->dbName};",
-                $this->dbUser,
-                $this->dbPass,
-                array()
-            );
+            $this->db = new PDO("sqlsrv:Server={$this->dbHost};Database={$this->dbName}");
+            $this->db->setAttribute(constant('PDO::SQLSRV_ATTR_DIRECT_QUERY'), true);
         }
         catch (PDOException $e)
         {
             echo '<!-- Database Error: ' . $e->getMessage() . ' -->';
             $this->isConnected = false;
         }
-        unset($pass);
     }
 
     public function __destruct()
     {
-        if ($this->debug)
-        {
-            echo '<pre>';
-            print_r($this->log);
-            echo 'Duplicate queries:<hr />';
-            $dupes = array();
-            foreach ($this->log as $entry)
-            {
-                if (isset($entry['sql']))
-                {
-                    $dupes[serialize($entry)]['sql'] = $entry['sql'];
-                    $dupes[serialize($entry)]['vars'] = $entry['vars'];
-                    $dupes[serialize($entry)]['counter'] = isset($dupes[serialize($entry)]['counter']) ? $dupes[serialize($entry)]['counter'] + 1 : 1;
-                }
-            }
-            foreach ($dupes as $dupe)
-            {
-                if ($dupe['counter'] > 1)
-                {
-                    print_r($dupe);
-                }
-            }
-            echo '<hr />';
-            echo "</pre><br />Time: {$this->time} sec<br />";
-        }
+        $this->db = null;
     }
 
     // Log errors from the database
@@ -158,6 +127,9 @@ class DB_CDW
         if ($this->debug)
         {
             $this->time += microtime(true) - $time1;
+            print $this->db->errorCode();
+            echo "\n";
+            print_r ($this->db->errorInfo());
         }
     }
 
@@ -198,6 +170,9 @@ class DB_CDW
         if ($this->debug)
         {
             $this->time += microtime(true) - $time1;
+            print $this->db->errorCode();
+            echo "\n";
+            print_r ($this->db->errorInfo());
         }
 
         return $query->fetchAll(PDO::FETCH_ASSOC);
