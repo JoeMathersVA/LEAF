@@ -28,7 +28,6 @@ class WorkflowController extends RESTfulResponse
         $workflow = $this->workflow;
         
         $this->index['GET'] = new ControllerMap();
-        $cm = $this->index['GET'];
         $this->index['GET']->register('workflow/version', function () {
             return $this->API_VERSION;
         });

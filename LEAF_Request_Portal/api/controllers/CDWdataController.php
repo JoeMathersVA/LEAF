@@ -21,40 +21,31 @@ class CDWdataController extends RESTfulResponse
 
     private $cdw;
 
-    private $db;
-
-    private $login;
-
     public function __construct($db, $login)
     {
-        $this->db = $db;
-        $this->login = $login;
         $this->cdw = new CDW($db, $login);
-    }
-
-    public function verifyVaccineReferrer() {
-        return ($this->verifyAdminReferrer() && strpos($_SERVER['REQUEST_URI'], 'NATIONAL/101/vaccine_data_reporting') !== 'false');
     }
 
     public function get($act)
     {
-        //$this->verifyVaccineReferrer();
-        $db = $this->db;
-        $login = $this->login;
         $cdw = $this->cdw;
 
         $this->index['GET'] = new ControllerMap();
-        $cm = $this->index['GET'];
-        $cm->register('cdw/version', function () {
+        $this->index['GET']->register('cdw/version', function () {
             return $this->API_VERSION;
         });
 
         /** Validate Vaccine Status in CDW - Expects Valid Email Address and Optional Pathway*/
-        $cm->register('cdw/vaccine/status', function () use ($cdw) {
-            return $cdw->getVaccineStatus();
+        $this->index['GET']->register('cdw/vaccine/status', function () use ($cdw) {
+            return $cdw->getVaccineStatus($_POST["userID"]);
         });
 
-        return $cm->runControl($act['key'], $act['args']);
+        /** Check Compliance and Send Email to userID*/
+        $this->index['GET']->register('cdw/vaccine/email', function () use ($cdw) {
+            return $cdw->vaccineStatusEmail($_POST["userID"]);
+        });
+
+        return $this->index['GET']->runControl($act['key'], $act['args']);
     }
 
     public function post($act)
@@ -62,12 +53,16 @@ class CDWdataController extends RESTfulResponse
         $cdw = $this->cdw;
 
         $this->index['POST'] = new ControllerMap();
-        $cm = $this->index['POST'];
-        $cm->register('cdw', function ($args) {
+        $this->index['POST']->register('cdw', function ($args) {
+        });
+
+        /** Run bulk export of LEAF data to CDW */
+        $this->index['POST']->register('cdw/vaccine/bulkexport', function () use ($cdw) {
+            return $cdw->vaccineBulkExport();
         });
 
         /** Modify Vaccine when record ID unknown **/
-        $cm->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
+        $this->index['POST']->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
             return $cdw->modifyVaccine((int)$args[0]);
         });
 
@@ -77,8 +72,6 @@ class CDWdataController extends RESTfulResponse
     public function delete($act)
     {
         $cdw = $this->cdw;
-
-        //$this->verifyVaccineReferrer();
 
         $this->index['DELETE'] = new ControllerMap();
         $this->index['DELETE']->register('cdw', function ($args) {

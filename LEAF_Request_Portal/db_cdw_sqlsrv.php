@@ -39,7 +39,6 @@ class DB_CDW
         try
         {
             $this->db = new PDO("sqlsrv:Server={$this->dbHost};Database={$this->dbName}");
-            $this->db->setAttribute(constant('PDO::SQLSRV_ATTR_DIRECT_QUERY'), true);
         }
         catch (PDOException $e)
         {

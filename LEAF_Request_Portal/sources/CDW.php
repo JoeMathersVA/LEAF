@@ -12,6 +12,10 @@ $currDir = dirname(__FILE__);
 
 require_once $currDir . '/../globals.php';
 require_once $currDir . '/../db_cdw_sqlsrv.php';
+require_once $currDir . '/../Email.php';
+require_once $currDir . '/../form.php';
+require_once $currDir . '/../FormWorkflow.php';
+require_once $currDir . '/../sources/Workflow.php';
 if (!class_exists('XSSHelpers')) {
     require_once dirname(__FILE__) . '/../../libs/php-commons/XSSHelpers.php';
 }
@@ -32,6 +36,8 @@ class CDW
 
     private $login;
     private $employee;
+    private $form;
+    private $formWork;
 
     public function __construct($db, $login)
     {
@@ -42,12 +48,16 @@ class CDW
         $this->db_nexus = new DB($config->phonedbHost, $config->phonedbUser, $config->phonedbPass, $config->phonedbName);
 
         $this->employee = new Orgchart\Employee($this->db_nexus, $login);
+        $this->form = new Form($db, $login);
+        $this->formWork = new FormWorkflow($db, $login, 0);
 
         $this->siteRoot = "https://" . HTTP_HOST . dirname($_SERVER['REQUEST_URI']) . '/';
     }
 
-    public function getVaccineStatus() {
-        $empEmail = XSSHelpers::xssafe($_POST["employee_email"]);
+    public function getVaccineStatus($userID) {
+        $resEmp = $this->employee->lookupDelLogin($userID);
+        $empEmail = $resEmp[0]['email'];
+
         if (filter_var($empEmail, \FILTER_VALIDATE_EMAIL) === false) {
             return 'Invalid Email';
         }
@@ -55,40 +65,215 @@ class CDW
         $strVars = array(
             ':employeeEmail' => $empEmail
         );
-        $strSQL = "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineDateDose1],".
-            "[VaccineDateDose2],[VaccineName],[VaccineStatus],[VaccineDose1Location],[VaccineDose2Location],".
-            "[Dose1LocationName],[Dose2LocationName],[HRType],[ComplianceType],[HCP],[SourceLastModifiedDate],".
-            "[SourceDataUploadDate],[NonComplyReason],[VaccineInfoID],[VaccinePathway],[LastModifiedDate] ".
-            "FROM [BISL_OHRS].[Model].[VaccineCompliance] ".
+        $strSQL = "SELECT [HREmpID],[EmployeeEmail],[EmployeeADAccountName],[VaccineName],[VaccineStatus],".
+            "[HRType],[ComplianceType],[HCP],[NonComplyReason],[VaccineInfoID],[LastModifiedDate] ".
+            "FROM [Model].[VaccineCompliance] ".
             "WHERE [EmployeeEmail] = :employeeEmail";
         $res = $this->db_cdw->prepared_query($strSQL, $strVars);
+
+        $res[0] = array_merge($res[0], $resEmp[0]);
 
         if (count($res) > 0) {
             return $res[0];
         } else {
-            return "No User Found";
+            return 'No User Found';
         }
     }
 
-    public function vaccineBulkExport() {
-	if (!$this->login->checkGroup(1))
+    public function vaccineStatusEmail($userID = null){
+        if (!$this->login->checkGroup(1))
         {
             return 'Admin Only';
         }
-	$strSQL = "SELECT recordID FROM records WHERE submitted > 0 AND deleted = 0";
-	$res = $this->db->query($strSQL);
-	foreach ($res as $recordID) {
-	    modifyVaccine($recordID['recordID']);
-	}
+        if ($userID === null)
+        {
+            return 'Invalid userID';
+        }
+        $this->complianceROI($userID);
+
+        return 1;
     }
-	
+
+    public function vaccineInfoError($recordID, $userID) {
+        /** TODO
+         Add a error logging system with either HD portal or email system
+         */
+    }
+
+    public function vaccineBulkExport() {
+	    if (!$this->login->checkGroup(1))
+        {
+            return 'Admin Only';
+        }
+	    $strSQL = "SELECT recordID FROM records WHERE submitted > 0 AND deleted = 0";
+	    $res = $this->db->query($strSQL);
+	    foreach ($res as $recordID) {
+	        modifyVaccine($recordID['recordID']);
+	    }
+
+	    return 1;
+    }
+
+    public function complianceROI($userID) {
+        $res = $this->getVaccineStatus($userID);
+
+        $vars = array(':recordID' => $res['VaccineInfoID']);
+        $strSQL = "SELECT stepID, submitted FROM records_workflow_state LEFT JOIN records using (recordID) ".
+                    "WHERE recordID = :recordID AND stepID IN (20, 22, 31) AND deleted = 0";
+        $res2 = $this->db->prepared_query($strSQL, $vars);
+
+
+        $res = array_merge($res, $res2[0]);
+
+        $sendEmail = false;
+        $sendAudit = false;
+        $sendNotFound = false;
+
+        // Process Paths
+        if (in_array($res['stepID'], array(22, 20, 31))) {
+            $this->formWork->initRecordID($res['VaccineInfoID']);
+            switch ($res['stepID']) {
+                // Path 1 Holding
+                case 22:
+                    switch (strtolower($res['ComplianceType'])) {
+                        case "compliant":
+                            $this->formWork->setStep(23, true, 'Moved by CDW');
+                            $sendEmail = true;
+                            break;
+                        case "not found":
+                            $this->formWork->setStep(31, true, 'Moved by CDW');
+                            $sendNotFound = true;
+                            break;
+                    }
+                    break;
+                // Path 2 Holding
+                case 20:
+                    switch (strtolower($res['ComplianceType'])) {
+                        case "compliant":
+                            $this->formWork->setStep(25, true, 'Moved by CDW');
+                            $sendEmail = true;
+                            break;
+                        case "under review":
+                            $this->formWork->setStep(15, true, 'Moved by CDW');
+                            $sendAudit = true;
+                            break;
+                    }
+                    break;
+                // Repeated Not Found Path
+                case 31:
+                     $sendNotFound = true;
+                     break;
+            }
+        }
+
+        $vars = array(':vaccineInfoID' => $res['VaccineInfoID']);
+        $strSQL = "SELECT data from data WHERE indicatorID = 48 AND recordID = :vaccineInfoID";
+        $result = $this->db->prepared_query($strSQL, $vars);
+
+        $supervisor = $this->employee->lookupDelEmpUID($result[0]['data']);
+
+        if ($sendEmail) {
+            $email = new Email();
+            $email->setSender("noreply@leaf.va.gov");
+            $email->setSubject("Vaccine Mandate Compliance Information");
+            $strContent = '<p>'.$res[0]['firstName'].' '.$res[0]['lastName'].',</p> '.
+                '<p>Thank you for completing the Vaccination Status form in LEAF on '.date("F j, Y",$res['submitted']).'.</p>'.
+                '<p>This email is to notify you that your vaccine status has changed to <strong>Compliant</strong>. '.
+                'Please keep this email for your records.</p>';
+
+            $email->setBody($strContent);
+            $email->addRecipient("Panaghis.Nerantzinis@va.gov");
+            //$email->addRecipient($res['EmployeeEmail']);
+            $email->sendMail();
+
+            return 1;
+        }
+
+        if ($sendAudit) {
+            $emailAud = new Email();
+            $emailAud->setSender("noreply@leaf.va.gov");
+            $emailAud->setSubject("Vaccine Mandate Supervisor Approval Information");
+            $strContent = "<p>".$res[0]['firstName']." ".$res[0]['lastName'].",</p>".
+                "<p>As part of the COVID Vaccine mandate reporting process, you will be asked to review your employees' ".
+                "randomly selected LEAF submissions.  One of your employees' records have been randomly selected.  ".
+                "You can review the submitted vaccine information and compare it to the uploaded vaccine documentation ".
+                "<a href='https://leaf.va.gov/NATIONAL/101/vaccination_data_reporting' target='_blank'>here</a>. ".
+                "Once you review the records to ensure that all the information matches, you will have three choices:</p> ".
+                "<ul><li>Approved - Everything looks good</li>".
+                "<li>Returning - Vaccine documentation does not match submitted information</li>".
+                "<li>Returning - Employee did not enter required information</li></ul>".
+                "<p>Please review to ensure your employee can meet the deadline for submitting vaccination information in LEAF on time</p>";
+
+            $emailAud->setBody($strContent);
+            $emailAud->addCcBcc("Panaghis.Nerantzinis@va.gov");
+            $emailAud->addRecipient("Michael.Shaffer1@va.gov");
+            //$emailAud->addCcBcc($res['EmployeeEmail']);
+            //$emailAud->addRecipient($supervisor[0]['email']);
+            $emailAud->sendMail();
+
+            return 1;
+        }
+
+        if ($sendNotFound) {
+            $emailNF = new Email();
+            $emailNF->setSender("noreply@leaf.va.gov");
+            $emailNF->setSubject("ACTION NEEDED - Vaccine Mandate Compliance");
+            $strContent = "<p>".$res[0]['firstName']." ".$res[0]['lastName'].",</p>".
+                "<p>You are receiving this email because you submitted a request in ".
+                "Light Electronic Action Framework (LEAF) to have VHA pull your vaccine records to show proof ".
+                "of your vaccination at a VHA facility. We tried, but <strong><em>unfortunately we were not able to access ".
+                "your vaccine records</em></strong>. This could be a technical issue in attempting to link your records to LEAF. ".
+                "It could also mean that VA has no record of your vaccine.</p>".
+                "<p>We are sorry to inconvenience you, but you will need to either:</p>".
+                "<ul><li>Work with the Occupational Health office where you got your vaccine to update your ".
+                "information and fix the information discrepancy, OR</li>".
+                "<li>Go back into LEAF and upload a copy of your vaccine card</li></ul>".
+                "<p>Below is guidance on getting a copy of your vaccination card if you no longer have your card, ".
+                "and instructions on how to update your records in LEAF.</p>".
+                "<p><strong>How do I get a copy of my vaccination card if I lost mine?</strong><br />".
+                "Please contact your local Occupational Health office to ask for a copy of your card. If you ".
+                "are a Veteran (VHA patient), and Occupational Health does not have a record in the ".
+                "Occupational Health Records System (OHRS), your records may be in your Veteran's patient records; ".
+                "your Occupational Health office can copy it over to your employee's records and share a copy with you.</p>".
+                "<p><strong>How do I upload a copy of my vaccine card?</strong><br />".
+                "To upload your vaccine card, please:</p>".
+                "<ul><li>Go into <a href='https://leaf.va.gov/NATIONAL/101/vaccination_data_reporting' target='_blank'>LEAF</a></li>".
+                "<li>Click on the \"Review or Update your record\"<br /> ".
+                "<img src='https://leaf.va.gov/NATIONAL/101/vaccination_data_reporting/files/review_update_record.jpg' ".
+                "alt='Review or Update Your Record Button' /><br />&nbsp;</li>".
+                "<li>Click on the \"Reset and Start over\" button to the left side of the screen. When asked if you ".
+                "are sure you want to start over, click \"Yes\".<br />".
+                "<img src='https://leaf.va.gov/NATIONAL/101/vaccination_data_reporting/files/reset_start_over.jpg' ".
+                "alt='Reset and Start Over Button' /><br />&nbsp;</li>".
+                "<li>Click on \"I have been vaccinated in VHA and want to upload the records myself\"<br /> ".
+                "<img src='https://leaf.va.gov/NATIONAL/101/vaccination_data_reporting/files/path_1_v2.jpg' ".
+                "alt='I Have Been Vaccinated by the VHA and want to upload my vaccination records myself' /><br />&nbsp;</li>".
+                "<li>Complete all the information and submit</li></ul>".
+                "<p><strong>Note:</strong> To ensure your supervisor is aware you attempted to comply with the ".
+                "deadline, we are copying your supervisor on this email.</p>".
+                "<p>Again, we are sorry for the inconvenience, and appreciate your help in uploading the information ".
+                "needed as soon as possible.</p>";
+
+            $emailNF->setBody($strContent);
+            $emailNF->addRecipient("Panaghis.Nerantzinis@va.gov");
+            $emailNF->addCcBcc("Michael.Shaffer1@va.gov");
+            //$emailNF->addRecipient($res['EmployeeEmail']);
+            //$emailNF->addCcBcc($supervisor[0]['email']);
+            $emailNF->sendMail();
+
+            return 1;
+        }
+
+        return 0;
+    }
+
     public function modifyVaccine($recordID = null) {
         if ($recordID === null) {
-            return "No Record Found";
+            return 'No Record Found';
         }
-	if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+	    if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
         {
-            return 0;
+            return 'Invalid CSRFToken';
         }
         $indicatorIDs = '242,261,42,262,48,195,183,187,184,188,104,265,210,282,106';
         $strVars = array(
@@ -130,14 +315,19 @@ class CDW
             'releaseStatus' => 0,
             'vaccineDocDate' => null,
             'lastModified' => date("Y-m-d H:i:s",$res[0]['timestamp']),
-            'dataUploadDT' => null
+            'dataUploadDT' => date("Y-m-d H:i:s")
         );
 
         $resUserEmail = $this->employee->lookupDelLogin($res[0]['userID']);
         $packet['employeeEmail'] = $resUserEmail[0]['email'];
         $packet['employeeAD'] = $res[0]['userID'];
 
-	$forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
+        if ($packet['employeeEmail'] === null || $packet['employeeEmail'] === '') {
+            $this->vaccineInfoError($recordID, $res[0]['userID']);
+            return 'Employee Email does not Exist.';
+        }
+
+	    $forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
         $vars = array(
             ':recordID' => $recordID);
         $strSQL = "SELECT categoryID FROM category_count ".
@@ -172,6 +362,9 @@ class CDW
                     $resSuper = $this->employee->lookupDelEmpUID($tmp['data']);
                     $packet['supervisorEmail'] = $resSuper[0]['email'];
                     $packet['supervisorAD'] = $resSuper[0]['userName'];
+                    if ($packet['supervisorEmail'] === null || $packet['supervisorEmail'] === '') {
+                        $this->vaccineInfoError($recordID, $resSuper[0]['userName']);
+                    }
                     break;
                 case 106:
                     $indicatorID = $tmp['indicatorID'];
@@ -211,7 +404,7 @@ class CDW
             ':vaccineDocDate' => $packet['vaccineDocDate'],
             ':submittedDate' => $packet['submittedDate'],
             ':lastModified' => $packet['lastModified'],
-	    ':dataUploadDT' => $packet['dataUploadDT']);
+	        ':dataUploadDT' => $packet['dataUploadDT']);
         $strSQL = "DECLARE @vaccineInfoID int = :vaccineInfoID,@employeeEmail varchar(255) = :employeeEmail,@employeeAD varchar(255) = :employeeAD,".
 	            "@supervisorEmail varchar(255) = :supervisorEmail,@supervisorAD varchar(255) = :supervisorAD,@vaccinePathway varchar(255) = :vaccinePathway,".
 	            "@vaccineName varchar(255) = :vaccineName,@doseOneDate varchar(255) = :doseOneDate,@doseOneLocation varchar(255) = :doseOneLocation,@doseTwoDate varchar(255) = :doseTwoDate,".
@@ -237,23 +430,37 @@ class CDW
 		        "@doseOneLocation,@doseTwoDate,@doseTwoLocation,@vaccineDocType,@exceptionType,".
 		        "@perjuryStatus,@releaseStatus,@vaccineDocDate,@submittedDate,@lastModified,@dataUploadDT)";
         $this->db_cdw->prepared_query($strSQL, $vars);
+
+        /*
+         * TODO: Waiting for CDW to update Stored Procedure for individual EmpEmail input
+        $vars = array(':employeeEmail' => $packet['employeeEmail']);
+        $strSQL = "EXEC [ETL].[Post_LEAF_Import]";
+        $res = $this->db_cdw->query($strSQL);*/
+
+        $this->complianceROI($packet['employeeAD']);
+
+        return 1;
     }
 
     public function deleteVaccine($recordID = null) {
-	if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+	    if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
         {
             return 0;
+        }
+        if (!$this->form->hasWriteAccess($recordID))
+        {
+            return 'Please contact your administrator to cancel this request to help avoid confusion in the process.';
         }
         if ($recordID != null) {
             $strVars = array(
                 ':vaccineInfoID' => $recordID
             );
-            $strSQL = 'DELETE FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID';
-            $res = $this->db_cdw->prepared_query($strSQL, $strVars);
+            $strSQL = "DELETE FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID";
+            $this->db_cdw->prepared_query($strSQL, $strVars);
 
-            return $res;
+            return 1;
         } else {
-            return "Record not Found";
+            return 'Record not Found';
         }
     }
 
