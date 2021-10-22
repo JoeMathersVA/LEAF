@@ -108,7 +108,7 @@ class CDW
 	    $strSQL = "SELECT recordID FROM records WHERE submitted > 0 AND deleted = 0";
 	    $res = $this->db->query($strSQL);
 	    foreach ($res as $recordID) {
-	        modifyVaccine($recordID['recordID']);
+	        $this->modifyVaccine($recordID['recordID']);
 	    }
 
 	    return 1;
@@ -119,7 +119,7 @@ class CDW
 
         $vars = array(':recordID' => $res['VaccineInfoID']);
         $strSQL = "SELECT stepID, submitted FROM records_workflow_state LEFT JOIN records using (recordID) ".
-                    "WHERE recordID = :recordID AND stepID IN (20, 22, 31) AND deleted = 0";
+                    "WHERE recordID = :recordID AND stepID IN (20, 22) AND deleted = 0";
         $res2 = $this->db->prepared_query($strSQL, $vars);
 
 
@@ -130,7 +130,7 @@ class CDW
         $sendNotFound = false;
 
         // Process Paths
-        if (in_array($res['stepID'], array(22, 20, 31))) {
+        if (in_array($res['stepID'], array(22, 20))) {
             $this->formWork->initRecordID($res['VaccineInfoID']);
             switch ($res['stepID']) {
                 // Path 1 Holding
@@ -159,10 +159,6 @@ class CDW
                             break;
                     }
                     break;
-                // Repeated Not Found Path
-                case 31:
-                     $sendNotFound = true;
-                     break;
             }
         }
 
@@ -176,14 +172,13 @@ class CDW
             $email = new Email();
             $email->setSender("noreply@leaf.va.gov");
             $email->setSubject("Vaccine Mandate Compliance Information");
-            $strContent = '<p>'.$res[0]['firstName'].' '.$res[0]['lastName'].',</p> '.
+            $strContent = '<p>'.htmlspecialchars($res['firstName'], ENT_QUOTES).' '.htmlspecialchars($res['lastName'], ENT_QUOTES).',</p> '.
                 '<p>Thank you for completing the Vaccination Status form in LEAF on '.date("F j, Y",$res['submitted']).'.</p>'.
                 '<p>This email is to notify you that your vaccine status has changed to <strong>Compliant</strong>. '.
                 'Please keep this email for your records.</p>';
 
             $email->setBody($strContent);
-            $email->addRecipient("Panaghis.Nerantzinis@va.gov");
-            //$email->addRecipient($res['EmployeeEmail']);
+            $email->addRecipient($res['EmployeeEmail']);
             $email->sendMail();
 
             return 1;
@@ -193,7 +188,7 @@ class CDW
             $emailAud = new Email();
             $emailAud->setSender("noreply@leaf.va.gov");
             $emailAud->setSubject("Vaccine Mandate Supervisor Approval Information");
-            $strContent = "<p>".$res[0]['firstName']." ".$res[0]['lastName'].",</p>".
+            $strContent = "<p>".htmlspecialchars($res['firstName'], ENT_QUOTES)." ".htmlspecialchars($res['lastName'], ENT_QUOTES).",</p>".
                 "<p>As part of the COVID Vaccine mandate reporting process, you will be asked to review your employees' ".
                 "randomly selected LEAF submissions.  One of your employees' records have been randomly selected.  ".
                 "You can review the submitted vaccine information and compare it to the uploaded vaccine documentation ".
@@ -205,10 +200,8 @@ class CDW
                 "<p>Please review to ensure your employee can meet the deadline for submitting vaccination information in LEAF on time</p>";
 
             $emailAud->setBody($strContent);
-            $emailAud->addCcBcc("Panaghis.Nerantzinis@va.gov");
-            $emailAud->addRecipient("Michael.Shaffer1@va.gov");
-            //$emailAud->addCcBcc($res['EmployeeEmail']);
-            //$emailAud->addRecipient($supervisor[0]['email']);
+            $emailAud->addCcBcc($res['EmployeeEmail']);
+            $emailAud->addRecipient($supervisor[0]['email']);
             $emailAud->sendMail();
 
             return 1;
@@ -218,7 +211,7 @@ class CDW
             $emailNF = new Email();
             $emailNF->setSender("noreply@leaf.va.gov");
             $emailNF->setSubject("ACTION NEEDED - Vaccine Mandate Compliance");
-            $strContent = "<p>".$res[0]['firstName']." ".$res[0]['lastName'].",</p>".
+            $strContent = "<p>".htmlspecialchars($res['firstName'], ENT_QUOTES)." ".htmlspecialchars($res['lastName'], ENT_QUOTES).",</p>".
                 "<p>You are receiving this email because you submitted a request in ".
                 "Light Electronic Action Framework (LEAF) to have VHA pull your vaccine records to show proof ".
                 "of your vaccination at a VHA facility. We tried, but <strong><em>unfortunately we were not able to access ".
@@ -255,10 +248,8 @@ class CDW
                 "needed as soon as possible.</p>";
 
             $emailNF->setBody($strContent);
-            $emailNF->addRecipient("Panaghis.Nerantzinis@va.gov");
-            $emailNF->addCcBcc("Michael.Shaffer1@va.gov");
-            //$emailNF->addRecipient($res['EmployeeEmail']);
-            //$emailNF->addCcBcc($supervisor[0]['email']);
+            $emailNF->addRecipient($res['EmployeeEmail']);
+            $emailNF->addCcBcc($supervisor[0]['email']);
             $emailNF->sendMail();
 
             return 1;
@@ -437,7 +428,7 @@ class CDW
         $strSQL = "EXEC [ETL].[Post_LEAF_Import]";
         $res = $this->db_cdw->query($strSQL);*/
 
-        $this->complianceROI($packet['employeeAD']);
+        //$this->complianceROI($packet['employeeAD']);
 
         return 1;
     }
@@ -445,7 +436,7 @@ class CDW
     public function deleteVaccine($recordID = null) {
 	    if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
         {
-            return 0;
+            return 'Invalid Token.';
         }
         if (!$this->form->hasWriteAccess($recordID))
         {

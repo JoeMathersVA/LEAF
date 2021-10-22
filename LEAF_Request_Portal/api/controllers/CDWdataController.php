@@ -36,13 +36,13 @@ class CDWdataController extends RESTfulResponse
         });
 
         /** Validate Vaccine Status in CDW - Expects Valid Email Address and Optional Pathway*/
-        $this->index['GET']->register('cdw/vaccine/status', function () use ($cdw) {
-            return $cdw->getVaccineStatus($_POST["userID"]);
+        $this->index['GET']->register('cdw/vaccine/[text]/status', function ($args) use ($cdw) {
+            return $cdw->getVaccineStatus($args[0]);
         });
 
         /** Check Compliance and Send Email to userID*/
-        $this->index['GET']->register('cdw/vaccine/email', function () use ($cdw) {
-            return $cdw->vaccineStatusEmail($_POST["userID"]);
+        $this->index['GET']->register('cdw/vaccine/[text]/email', function ($args) use ($cdw) {
+            return $cdw->vaccineStatusEmail($args[0]);
         });
 
         return $this->index['GET']->runControl($act['key'], $act['args']);
@@ -66,22 +66,11 @@ class CDWdataController extends RESTfulResponse
             return $cdw->modifyVaccine((int)$args[0]);
         });
 
-        return $this->index['POST']->runControl($act['key'], $act['args']);
-    }
-
-    public function delete($act)
-    {
-        $cdw = $this->cdw;
-
-        $this->index['DELETE'] = new ControllerMap();
-        $this->index['DELETE']->register('cdw', function ($args) {
-        });
-
         // Expected digit is LEAF Record ID to be removed from CDW Uploads
-        $this->index['DELETE']->register('cdw/vaccine/[digit]/remove', function ($args) use ($cdw) {
+        $this->index['POST']->register('cdw/vaccine/[digit]/remove', function ($args) use ($cdw) {
             return $cdw->deleteVaccine((int)$args[0]);
         });
 
-        return $this->index['DELETE']->runControl($act['key'], $act['args']);
+        return $this->index['POST']->runControl($act['key'], $act['args']);
     }
 }
