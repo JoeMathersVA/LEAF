@@ -31,16 +31,17 @@ class CDWdataController extends RESTfulResponse
         $cdw = $this->cdw;
 
         $this->index['GET'] = new ControllerMap();
+
         $this->index['GET']->register('cdw/version', function () {
             return $this->API_VERSION;
         });
 
-        /** Validate Vaccine Status in CDW - Expects Valid Email Address and Optional Pathway*/
+        /** Validate Vaccine Status in CDW - Expects Valid Email Address and Optional Pathway **/
         $this->index['GET']->register('cdw/vaccine/[text]/status', function ($args) use ($cdw) {
             return $cdw->getVaccineStatus($args[0]);
         });
 
-        /** Check Compliance and Send Email to userID*/
+        /** Check Compliance and Send Email to userID **/
         $this->index['GET']->register('cdw/vaccine/[text]/email', function ($args) use ($cdw) {
             return $cdw->vaccineStatusEmail($args[0]);
         });
@@ -53,37 +54,25 @@ class CDWdataController extends RESTfulResponse
         $cdw = $this->cdw;
 
         $this->index['POST'] = new ControllerMap();
-        $this->index['POST']->register('cdw', function ($args) {
-        });
 
-        /** Error Reporting for API Fail to CDW */
+        /** Error Reporting for API Fail to CDW **/
         $this->index['POST']->register('cdw/vaccine/error', function () use ($cdw) {
             return $cdw->vaccineInfoError($_POST['recordID'], $_POST['userID']);
         });
 
-        /** Run bulk export of LEAF data to CDW */
+        /** Run bulk export of LEAF data to CDW **/
         $this->index['POST']->register('cdw/vaccine/bulkexport', function () use ($cdw) {
             return $cdw->vaccineBulkExport();
         });
 
         /** Modify Vaccine when record ID unknown **/
         $this->index['POST']->register('cdw/vaccine/[digit]/submit', function ($args) use ($cdw) {
-            return $cdw->modifyVaccine((int)$args[0]);
+            return $cdw->modifyVaccine((int)$args[0], $_POST['isLocal']);
         });
 
-        /** Modify Vaccine when record ID unknown **/
-        $this->index['POST']->register('cdw/vaccine/[digit]/local/submit', function ($args) use ($cdw) {
-            return $cdw->modifyLocalVaccine((int)$args[0]);
-        });
-
-        // Expected digit is LEAF Record ID to be removed from CDW Uploads
+        /**  Expected digit is LEAF Record ID to be removed from CDW Uploads **/
         $this->index['POST']->register('cdw/vaccine/[digit]/remove', function ($args) use ($cdw) {
-            return $cdw->deleteVaccine((int)$args[0]);
-        });
-
-        // Expected digit is LEAF Record ID to be removed from CDW Uploads
-        $this->index['POST']->register('cdw/vaccine/[digit]/local/remove', function ($args) use ($cdw) {
-            return $cdw->deleteLocalVaccine((int)$args[0]);
+            return $cdw->deleteVaccine((int)$args[0], $_POST['isLocal']);
         });
 
         return $this->index['POST']->runControl($act['key'], $act['args']);
