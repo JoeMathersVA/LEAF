@@ -266,7 +266,7 @@ class CDW
         return 0;
     }
 
-    public function modifyVaccine($recordID = null, $isLocal = true) {
+    public function modifyVaccine($recordID = null, $isLocal = 'true') {
         if ($recordID === null) {
             return 'No Record Found';
         }
@@ -404,7 +404,7 @@ class CDW
             ':submittedDate' => $packet['submittedDate'],
             ':lastModified' => $packet['lastModified'],
 	        ':dataUploadDT' => $packet['dataUploadDT']);
-        if ($isLocal === false) {
+        if ($isLocal === 'false') {
             $strSQL = "DECLARE @vaccineInfoID int = :vaccineInfoID,@employeeEmail varchar(255) = :employeeEmail,@employeeAD varchar(255) = :employeeAD," .
                             "@supervisorEmail varchar(255) = :supervisorEmail,@supervisorAD varchar(255) = :supervisorAD,@vaccinePathway varchar(255) = :vaccinePathway," .
                             "@vaccineName varchar(255) = :vaccineName,@doseOneDate varchar(255) = :doseOneDate,@doseOneLocation varchar(255) = :doseOneLocation,@doseTwoDate varchar(255) = :doseTwoDate," .
@@ -457,7 +457,7 @@ class CDW
         return 1;
     }
 
-    public function deleteVaccine($recordID = null, $isLocal = true) {
+    public function deleteVaccine($recordID = null, $isLocal = 'true') {
 	    if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
         {
             return 'Invalid Token.';
@@ -470,7 +470,7 @@ class CDW
             $strVars = array(
                 ':vaccineInfoID' => $recordID
             );
-            if ($isLocal === false) {
+            if ($isLocal === 'false') {
                 $strSQL = "DELETE FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID";
                 $this->db_cdw = new DB_CDW('BISL_OHRS');
                 $this->db_cdw->prepared_query($strSQL, $strVars);
