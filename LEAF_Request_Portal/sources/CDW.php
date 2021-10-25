@@ -321,6 +321,12 @@ class CDW
         $packet['employeeEmail'] = $resUserEmail[0]['email'];
         $packet['employeeAD'] = $res[0]['userID'];
 
+        if ($packet['employeeEmail'] === null || $packet['employeeEmail'] === '') {
+            $this->vaccineInfoError($recordID,$res[0]['userID']);
+
+            return 'Email not found';
+        }
+
 	    $forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
         $strVars = array(
             ':recordID' => $recordID);
