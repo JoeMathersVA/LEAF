@@ -95,20 +95,28 @@ class CDW
     }
 
     public function vaccineInfoError($recordID, $userID) {
-        /** TODO
-         Add a error logging system with either HD portal or email system
-         */
+        $strVars = array(':recordID' => $recordID,
+                         ':userID' => $userID);
+        $strSQL = "INSERT INTO vaccine_error (recordID, userID) VALUES (:recordID, :userID) ".
+                    "ON DUPLICATE KEY UPDATE recordID=:recordID, userID=:userID";
+        $this->db->prepared_query($strSQL, $strVars);
+
+        return 'Error Reported';
     }
 
-    public function vaccineBulkExport() {
+    public function vaccineBulkExport($isLocal = false) {
 	    if (!$this->login->checkGroup(1))
         {
             return 'Admin Only';
         }
 	    $strSQL = "SELECT recordID FROM records WHERE submitted > 0 AND deleted = 0";
 	    $res = $this->db->query($strSQL);
-	    foreach ($res as $recordID) {
-	        $this->modifyVaccine($recordID['recordID']);
+	    foreach ($res as $tmp) {
+            if ($isLocal === false) {
+                $this->modifyVaccine($tmp['recordID']);
+            } else {
+                $this->modifyLocalVaccine($tmp['recordID']);
+            }
 	    }
 
 	    return 1;
@@ -117,10 +125,10 @@ class CDW
     public function complianceROI($userID) {
         $res = $this->getVaccineStatus($userID);
 
-        $vars = array(':recordID' => $res['VaccineInfoID']);
+        $strVars = array(':recordID' => $res['VaccineInfoID']);
         $strSQL = "SELECT stepID, submitted FROM records_workflow_state LEFT JOIN records using (recordID) ".
                     "WHERE recordID = :recordID AND stepID IN (20, 22) AND deleted = 0";
-        $res2 = $this->db->prepared_query($strSQL, $vars);
+        $res2 = $this->db->prepared_query($strSQL, $strVars);
 
 
         $res = array_merge($res, $res2[0]);
@@ -162,9 +170,9 @@ class CDW
             }
         }
 
-        $vars = array(':vaccineInfoID' => $res['VaccineInfoID']);
+        $strVars = array(':vaccineInfoID' => $res['VaccineInfoID']);
         $strSQL = "SELECT data from data WHERE indicatorID = 48 AND recordID = :vaccineInfoID";
-        $result = $this->db->prepared_query($strSQL, $vars);
+        $result = $this->db->prepared_query($strSQL, $strVars);
 
         $supervisor = $this->employee->lookupDelEmpUID($result[0]['data']);
 
@@ -313,18 +321,13 @@ class CDW
         $packet['employeeEmail'] = $resUserEmail[0]['email'];
         $packet['employeeAD'] = $res[0]['userID'];
 
-        if ($packet['employeeEmail'] === null || $packet['employeeEmail'] === '') {
-            $this->vaccineInfoError($recordID, $res[0]['userID']);
-            return 'Employee Email does not Exist.';
-        }
-
 	    $forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
-        $vars = array(
+        $strVars = array(
             ':recordID' => $recordID);
         $strSQL = "SELECT categoryID FROM category_count ".
             "WHERE recordID = :recordID ".
             "AND categoryID IN (". $forms .")";
-        $resPath = $this->db->prepared_query($strSQL, $vars);
+        $resPath = $this->db->prepared_query($strSQL, $strVars);
 
         if ($resPath[0]['categoryID'] === 'form_2e22e') {
             $packet['vaccinePathway'] = 'Vaccinated by VHA - Import Records';
@@ -377,7 +380,7 @@ class CDW
             }
         }
 
-        $vars = array(':vaccineInfoID' => $packet['vaccineInfoID'],
+        $strVars = array(':vaccineInfoID' => $packet['vaccineInfoID'],
             ':employeeEmail' => $packet['employeeEmail'],
             ':employeeAD' => $packet['employeeAD'],
             ':supervisorEmail' => $packet['supervisorEmail'],
@@ -420,15 +423,165 @@ class CDW
 		        "@supervisorEmail,@supervisorAD,@vaccinePathway,@vaccineName,@doseOneDate,".
 		        "@doseOneLocation,@doseTwoDate,@doseTwoLocation,@vaccineDocType,@exceptionType,".
 		        "@perjuryStatus,@releaseStatus,@vaccineDocDate,@submittedDate,@lastModified,@dataUploadDT)";
-        $this->db_cdw->prepared_query($strSQL, $vars);
+        $this->db_cdw->prepared_query($strSQL, $strVars);
 
         /*
          * TODO: Waiting for CDW to update Stored Procedure for individual EmpEmail input
-        $vars = array(':employeeEmail' => $packet['employeeEmail']);
+        $strVars = array(':employeeEmail' => $packet['employeeEmail']);
         $strSQL = "EXEC [ETL].[Post_LEAF_Import]";
         $res = $this->db_cdw->query($strSQL);*/
 
         //$this->complianceROI($packet['employeeAD']);
+
+        return 1;
+    }
+
+    public function modifyLocalVaccine($recordID = null) {
+        if ($recordID === null) {
+            return 'No Record Found';
+        }
+        if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+        {
+            return 'Invalid CSRFToken';
+        }
+        $indicatorIDs = '242,261,42,262,48,195,183,187,184,188,104,265,210,282,106';
+        $strVars = array(
+            ':recordID' => $recordID
+        );
+        $strSQL = "SELECT rec.recordID, rec.userID, dt.data, dt.timestamp, indi.indicatorID, rec.submitted ".
+            "FROM data AS dt ".
+            "INNER JOIN indicators AS indi ON indi.indicatorID = dt.indicatorID ".
+            "INNER JOIN categories AS cate ON indi.categoryID = cate.categoryID ".
+            "INNER JOIN records AS rec ON rec.recordID = dt.recordID ".
+            "WHERE ".
+            "cate.disabled = 0 ".
+            "AND indi.disabled = 0 ".
+            "AND rec.submitted > 0 ".
+            "AND dt.indicatorID IN (". $indicatorIDs .") ".
+            "AND rec.deleted = 0 ".
+            "AND rec.recordID = :recordID ".
+            "ORDER BY ".
+            "recordID, timestamp DESC";
+
+        $res = $this->db->prepared_query($strSQL, $strVars);
+
+        $packet = array(
+            'vaccineInfoID' => $recordID,
+            'submittedDate' => date("Y-m-d H:i:s",$res[0]['submitted']),
+            'employeeEmail' => null,
+            'employeeAD' => null,
+            'supervisorEmail' => null,
+            'supervisorAD' => null,
+            'vaccinePathway' => null,
+            'vaccineName' => null,
+            'doseOneDate' => null,
+            'doseOneLocation' => null,
+            'doseTwoDate' => null,
+            'doseTwoLocation' => null,
+            'vaccineDocType' => null,
+            'exceptionType' => null,
+            'perjuryStatus' => 0,
+            'releaseStatus' => 0,
+            'vaccineDocDate' => null,
+            'lastModified' => date("Y-m-d H:i:s",$res[0]['timestamp']),
+            'dataUploadDT' => date("Y-m-d H:i:s")
+        );
+
+        $resUserEmail = $this->employee->lookupDelLogin($res[0]['userID']);
+        $packet['employeeEmail'] = $resUserEmail[0]['email'];
+        $packet['employeeAD'] = $res[0]['userID'];
+
+        $forms = "'form_2e22e', 'form_2e050', 'form_6958f'";
+        $strVars = array(
+            ':recordID' => $recordID);
+        $strSQL = "SELECT categoryID FROM category_count ".
+            "WHERE recordID = :recordID ".
+            "AND categoryID IN (". $forms .")";
+        $resPath = $this->db->prepared_query($strSQL, $strVars);
+
+        if ($resPath[0]['categoryID'] === 'form_2e22e') {
+            $packet['vaccinePathway'] = 'Vaccinated by VHA - Import Records';
+        } elseif ($resPath[0]['categoryID'] === 'form_2e050') {
+            $packet['vaccinePathway'] = 'Vaccinated by VHA/Outside - Manual Records';
+        } elseif ($resPath[0]['categoryID'] === 'form_6958f') {
+            $packet['vaccinePathway'] = 'Exemption';
+        }
+
+        $indicators = array(
+            48  => 'Supervisor',
+            104 => 'vaccineDocType',
+            106 => 'vaccineDocDate', // datetime
+            183 => 'doseOneDate',
+            184 => 'doseTwoDate',
+            187 => 'doseOneLocation',
+            188 => 'doseTwoLocation',
+            195 => 'vaccineName',
+            210 => 'perjuryStatus', // not null = 1 else 0
+            242 => 'releaseStatus', // not null = 1 else 0
+            265 => 'exceptionType'
+        );
+        foreach ($res as $tmp) {
+            switch ($tmp['indicatorID']) {
+                case 48:
+                    $resSuper = $this->employee->lookupDelEmpUID($tmp['data']);
+                    $packet['supervisorEmail'] = $resSuper[0]['email'];
+                    $packet['supervisorAD'] = $resSuper[0]['userName'];
+                    if ($packet['supervisorEmail'] === null || $packet['supervisorEmail'] === '') {
+                        $this->vaccineInfoError($recordID, $resSuper[0]['userName']);
+                    }
+                    break;
+                case 106:
+                    $indicatorID = $tmp['indicatorID'];
+                    $packet[$indicators[$indicatorID]] = date("Y-m-d H:i:s",$tmp['timestamp']);
+                    break;
+                case 210:
+                case 242:
+                    $indicatorID = $tmp['indicatorID'];
+                    if ($tmp['data'] === 'SIGN') {
+                        $packet[$indicators[$indicatorID]] = 1;
+                    } else {
+                        $packet[$indicators[$indicatorID]] = 0;
+                    }
+                    break;
+                default:
+                    $indicatorID = $tmp['indicatorID'];
+                    $packet[$indicators[$indicatorID]] = $tmp['data'];
+                    break;
+            }
+        }
+
+        $strVars = array(':vaccineInfoID' => $packet['vaccineInfoID'],
+            ':employeeEmail' => $packet['employeeEmail'],
+            ':employeeAD' => $packet['employeeAD'],
+            ':supervisorEmail' => $packet['supervisorEmail'],
+            ':supervisorAD' => $packet['supervisorAD'],
+            ':vaccinePathway' => $packet['vaccinePathway'],
+            ':vaccineName' => $packet['vaccineName'],
+            ':doseOneDate' => $packet['doseOneDate'],
+            ':doseOneLocation' => $packet['doseOneLocation'],
+            ':doseTwoDate' => $packet['doseTwoDate'],
+            ':doseTwoLocation' => $packet['doseTwoLocation'],
+            ':vaccineDocType' => $packet['vaccineDocType'],
+            ':exceptionType' => $packet['exceptionType'],
+            ':perjuryStatus' => $packet['perjuryStatus'],
+            ':releaseStatus' => $packet['releaseStatus'],
+            ':vaccineDocDate' => $packet['vaccineDocDate'],
+            ':submittedDate' => $packet['submittedDate'],
+            ':lastModified' => $packet['lastModified'],
+            ':dataUploadDT' => $packet['dataUploadDT']);
+        $strSQL = "INSERT INTO vaccine_info (vaccineInfoID, employeeEmail, employeeAD, supervisorEmail, supervisorAD, vaccinePathway, ".
+                            "vaccineName, doseOneDate, doseOneLocation, doseTwoDate, doseTwoLocation, vaccineDocType, exceptionType, ".
+                            "perjuryStatus, releaseStatus, vaccineDocDate, submittedDate, lastModified, dataUploadDT) ".
+                    "VALUES (:vaccineInfoID, :employeeEmail, :employeeAD, :supervisorEmail, :supervisorAD, :vaccinePathway, ".
+                            ":vaccineName, :doseOneDate, :doseOneLocation, :doseTwoDate, :doseTwoLocation, :vaccineDocType, :exceptionType, ".
+                            ":perjuryStatus, :releaseStatus, :vaccineDocDate, :submittedDate, :lastModified, :dataUploadDT) ".
+                    "ON DUPLICATE KEY UPDATE employeeEmail=:employeeEmail, employeeAD=:employeeAD, supervisorEmail=:supervisorEmail, ".
+                            "supervisorAD=:supervisorAD, vaccinePathway=:vaccinePathway, vaccineName=:vaccineName, ".
+                            "doseOneDate=:doseOneDate, doseOneLocation=:doseOneLocation, doseTwoDate=:doseTwoDate, ".
+                            "doseTwoLocation=:doseTwoLocation, vaccineDocType=:vaccineDocType, exceptionType=:exceptionType, ".
+                            "perjuryStatus=:perjuryStatus, releaseStatus=:releaseStatus, vaccineDocDate=:vaccineDocDate, ".
+                            "submittedDate=:submittedDate, lastModified=:lastModified, dataUploadDT=:dataUploadDT";
+        $this->db->prepared_query($strSQL, $strVars);
 
         return 1;
     }
@@ -448,6 +601,28 @@ class CDW
             );
             $strSQL = "DELETE FROM [Import].[LEAF_Vaccine_Info] WHERE [PK_VaccineInfo] = :vaccineInfoID";
             $this->db_cdw->prepared_query($strSQL, $strVars);
+
+            return 1;
+        } else {
+            return 'Record not Found';
+        }
+    }
+
+    public function deleteLocalVaccine($recordID = null) {
+        if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+        {
+            return 'Invalid Token.';
+        }
+        if (!$this->form->hasWriteAccess($recordID))
+        {
+            return 'Please contact your administrator to cancel this request to help avoid confusion in the process.';
+        }
+        if ($recordID != null) {
+            $strVars = array(
+                ':vaccineInfoID' => $recordID
+            );
+            $strSQL = "DELETE FROM vaccine_info WHERE vaccineInfoID = :vaccineInfoID";
+            $this->db->prepared_query($strSQL, $strVars);
 
             return 1;
         } else {
