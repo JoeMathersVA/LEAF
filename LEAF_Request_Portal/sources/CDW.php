@@ -458,13 +458,9 @@ class CDW
     }
 
     public function deleteVaccine($recordID = null, $isLocal = 'true') {
-	    if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
+	if ($_POST['CSRFToken'] != $_SESSION['CSRFToken'])
         {
             return 'Invalid Token.';
-        }
-        if (!$this->form->hasWriteAccess($recordID))
-        {
-            return 'Please contact your administrator to cancel this request to help avoid confusion in the process.';
         }
         if ($recordID != null) {
             $strVars = array(
