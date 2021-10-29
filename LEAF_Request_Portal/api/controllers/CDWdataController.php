@@ -74,6 +74,11 @@ class CDWdataController extends RESTfulResponse
         $this->index['POST']->register('cdw/vaccine/[digit]/remove', function ($args) use ($cdw) {
             return $cdw->deleteVaccine((int)$args[0], $_POST['isLocal']);
         });
+        
+        /**  Revoke ROI on Pathway 1 **/
+        $this->index['POST']->register('cdw/vaccine/[digit]/revoke', function ($args) use ($cdw) {
+            return $cdw->revokeROI((int)$args[0], $_POST['isLocal']);
+        });
 
         return $this->index['POST']->runControl($act['key'], $act['args']);
     }
