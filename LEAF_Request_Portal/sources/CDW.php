@@ -480,4 +480,28 @@ class CDW
             return 'Record not Found';
         }
     }
+	
+    public function revokeROI($recordID = null, $isLocal = 'true') {
+	if (!$_POST['releaseStatus']) {
+	    return 'Release Status not Found';
+	}
+	if ($recordID != null) {
+            $strVars = array(
+                ':vaccineInfoID' => $recordID,
+		':releaseStatus' => $_POST['releaseStatus']
+            );
+            if ($isLocal === 'false') {
+                $strSQL = "UPDATE [Import].[LEAF_Vaccine_Info] SET [releaseStatus] = :releaseStatus WHERE [PK_VaccineInfo] = :vaccineInfoID";
+                $this->db_cdw = new DB_CDW('BISL_OHRS');
+                $this->db_cdw->prepared_query($strSQL, $strVars);
+            } else {
+                $strSQL = "UPDATE vaccine_info SET releaseStatus = :releaseStatus WHERE vaccineInfoID = :vaccineInfoID";
+                $this->db->prepared_query($strSQL, $strVars);
+            }
+
+            return 1;
+        } else {
+            return 'Record not Found';
+        }
+    }
 }
