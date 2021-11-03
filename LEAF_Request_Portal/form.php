@@ -253,8 +253,8 @@ class Form
         $vars = array(':categoryID' => $categoryID);
 
         return $this->db->prepared_query('SELECT * FROM categories
-    										LEFT JOIN workflows USING (workflowID)
-    										WHERE categoryID=:categoryID', $vars);
+                                                                                LEFT JOIN workflows USING (workflowID)
+                                                                                WHERE categoryID=:categoryID', $vars);
     }
 
     public function getForm($recordID, $limitCategory = null)
@@ -409,15 +409,15 @@ class Form
                             // handle stapled (merged) forms
                             $vars = array(':categoryID' => $categoryID);
                             $res2 = $this->db->prepared_query('SELECT * FROM category_staples
-                												WHERE categoryID=:categoryID', $vars);
+                                                                                                                WHERE categoryID=:categoryID', $vars);
                             foreach ($res2 as $merged)
                             {
                                 $vars = array(':recordID' => $recordID,
                                               ':categoryID' => $merged['stapledCategoryID'],
                                               ':count' => $tCount, );
                                 $res = $this->db->prepared_query('INSERT INTO category_count (recordID, categoryID, count)
-                                                            		VALUES (:recordID, :categoryID, :count)
-                                                            		ON DUPLICATE KEY UPDATE count=:count', $vars);
+                                                                        VALUES (:recordID, :categoryID, :count)
+                                                                        ON DUPLICATE KEY UPDATE count=:count', $vars);
                             }
                         }
                     }
@@ -703,9 +703,9 @@ class Form
         // only allow admins to delete resolved requests
         $vars = array(':recordID' => $recordID);
         $res = $this->db->prepared_query('SELECT recordID, submitted, stepID FROM records
-        									LEFT JOIN records_workflow_state USING (recordID)
+                                                                                LEFT JOIN records_workflow_state USING (recordID)
                                             WHERE recordID=:recordID
-        										AND submitted > 0', $vars);
+                                                                                        AND submitted > 0', $vars);
         if (isset($res[0])
             && $res[0]['stepID'] == null
             && !$this->login->checkGroup(1))
@@ -822,14 +822,14 @@ class Form
         $res = $this->db->prepared_query('SELECT * FROM records
                                             LEFT JOIN services USING (serviceID)
                                             LEFT JOIN (SELECT recordID, tag FROM tags
-                                            			WHERE tag=:bookmarkID) lj1 USING (recordID)
+                                                                WHERE tag=:bookmarkID) lj1 USING (recordID)
                                             LEFT JOIN records_workflow_state USING (recordID)
                                             WHERE recordID=:recordID', $vars);
 
         $vars = array(':recordID' => (int)$recordID);
 
         $resCategory = $this->db->prepared_query('SELECT * FROM category_count
-        									LEFT JOIN categories USING (categoryID)
+                                                                                LEFT JOIN categories USING (categoryID)
                                             WHERE recordID=:recordID AND count > 0', $vars);
         $categoryData = array();
         $categoryNames = array();
@@ -1228,9 +1228,9 @@ class Form
             {
                 $vars = array(':workflowID' => $workflow['workflowID']);
                 $res = $this->db->prepared_query('SELECT * FROM workflow_routes
-            										WHERE workflowID=:workflowID
-            											AND stepID=-1
-            											AND actionType="submit"', $vars);
+                                                                                        WHERE workflowID=:workflowID
+                                                                                                AND stepID=-1
+                                                                                                AND actionType="submit"', $vars);
                 if (count($res) > 0)
                 {
                     $hasInitialStep = true;
@@ -1343,7 +1343,7 @@ class Form
                                                             USING (indicatorID)
                                                             WHERE recordID=:recordID
                                                                 AND indicators.required = 1
-        														AND indicators.disabled = 0
+                                                                                                                        AND indicators.disabled = 0
                                                                 AND data != ""', $vars);
 
         $resCount = $this->db->prepared_query('SELECT categoryID, COUNT(*) FROM indicators WHERE required=1 AND disabled = 0 GROUP BY categoryID', array());
@@ -1402,8 +1402,8 @@ class Form
             $categoryID = '';
             $vars = array(':recordID' => (int)$recordID);
             $res = $this->db->prepared_query('SELECT * FROM category_count
-        										WHERE recordID=:recordID
-        										GROUP BY categoryID', $vars);
+                                                                                        WHERE recordID=:recordID
+                                                                                        GROUP BY categoryID', $vars);
             foreach ($res as $type)
             {
                 $categoryID .= $type['categoryID'];
@@ -1460,7 +1460,7 @@ class Form
                                                         LEFT JOIN users USING (groupID)
                                                         WHERE categoryID=:categoryID
                                                             AND userID=:userID
-            												AND writable=1', $vars);
+                                                                                                        AND writable=1', $vars);
 
             if (count($resCategoryPrivs) > 0)
             {
@@ -1481,7 +1481,7 @@ class Form
                                                         LEFT JOIN users USING (groupID)
                                                         WHERE categoryID=:categoryID
                                                             AND userID=:userID
-            												AND writable=1', $vars);
+                                                                                                        AND writable=1', $vars);
 
                 if (count($resCategoryPrivs) > 0)
                 {
@@ -1497,11 +1497,11 @@ class Form
         // grant permissions to whoever currently "has" the form (whoever is the current approver)
         $vars = array(':recordID' => (int)$recordID);
         $resRecordPrivs = $this->db->prepared_query('SELECT recordID, groupID, dependencyID, records.userID, serviceID, indicatorID_for_assigned_empUID, indicatorID_for_assigned_groupID FROM records_workflow_state
-        												LEFT JOIN step_dependencies USING (stepID)
-        												LEFT JOIN workflow_steps USING (stepID)
-        												LEFT JOIN dependency_privs USING (dependencyID)
+                                                                                                        LEFT JOIN step_dependencies USING (stepID)
+                                                                                                        LEFT JOIN workflow_steps USING (stepID)
+                                                                                                        LEFT JOIN dependency_privs USING (dependencyID)
                                                         LEFT JOIN users USING (groupID)
-        												LEFT JOIN records USING (recordID)
+                                                                                                        LEFT JOIN records USING (recordID)
                                                         WHERE recordID=:recordID', $vars);
         foreach ($resRecordPrivs as $priv)
         {
@@ -1586,8 +1586,8 @@ class Form
                     {
                         $vars3 = array(':serviceID' => (int)$details['serviceID']);
                         $res3 = $this->db->prepared_query("SELECT * FROM services
-    							WHERE groupID IN ($quadGroupIDs)
-    							AND serviceID=:serviceID", $vars3);
+                                                        WHERE groupID IN ($quadGroupIDs)
+                                                        AND serviceID=:serviceID", $vars3);
                         $this->cache['checkReadAccess_quadGroupIDs_' . $quadGroupIDs . '_' . $details['serviceID']] = $res3;
                     }
                 }
@@ -1648,10 +1648,10 @@ class Form
                  }
                  else{
                     $empUID = $this->getEmpUID($resPerson[0]['userID']);
-                                                                
+
                     return $this->checkIfBackup($empUID);
                  }
-               
+
 
                 break;
             case -3: // dependencyID -3 : group designated by the requestor
@@ -1797,15 +1797,15 @@ class Form
             {
                 $vars = array();
                 $res2 = $this->db->prepared_query("SELECT recordID, dependencyID, groupID, serviceID, userID, indicatorID_for_assigned_empUID, indicatorID_for_assigned_groupID FROM records
-													LEFT JOIN category_count USING (recordID)
-													LEFT JOIN categories USING (categoryID)
-													LEFT JOIN workflows USING (workflowID)
-													LEFT JOIN workflow_steps USING (workflowID)
-													LEFT JOIN step_dependencies USING (stepID)
-													LEFT JOIN dependency_privs USING (dependencyID)
-													WHERE recordID IN ({$t_needToKnowRecords})
-														AND needToKnow = 0
-														AND count > 0", $vars);
+                                                                                                        LEFT JOIN category_count USING (recordID)
+                                                                                                        LEFT JOIN categories USING (categoryID)
+                                                                                                        LEFT JOIN workflows USING (workflowID)
+                                                                                                        LEFT JOIN workflow_steps USING (workflowID)
+                                                                                                        LEFT JOIN step_dependencies USING (stepID)
+                                                                                                        LEFT JOIN dependency_privs USING (dependencyID)
+                                                                                                        WHERE recordID IN ({$t_needToKnowRecords})
+                                                                                                                AND needToKnow = 0
+                                                                                                                AND count > 0", $vars);
 
                 $res = array_merge($res, $res2);
             }
@@ -1956,10 +1956,10 @@ class Form
         {
             $vars = array(':recordID' => (int)$recordID);
             $res = $this->db->prepared_query('SELECT * FROM category_count
-    											LEFT JOIN categories USING (categoryID)
-    											WHERE recordID=:recordID
-    												AND needToKnow = 1
-    												AND count > 0', $vars);
+                                                                                        LEFT JOIN categories USING (categoryID)
+                                                                                        WHERE recordID=:recordID
+                                                                                                AND needToKnow = 1
+                                                                                                AND count > 0', $vars);
             if (count($res) == 0)
             {
                 $this->cache['isNeedToKnow_' . $recordID] = false;
@@ -2020,7 +2020,7 @@ class Form
                                                 ON category_count.categoryID = j1.parentID
                                             WHERE recordID = :recordID
                                                 AND count > 0
-        									ORDER BY childCategoryName ASC', $vars);
+                                                                                ORDER BY childCategoryName ASC', $vars);
 
         return $res;
     }
@@ -2390,8 +2390,8 @@ class Form
             $vars = array(':recordID' => $recordID,
                           ':serviceID' => $serviceID, );
             $res = $this->db->prepared_query('UPDATE records SET
-                                            	serviceID=:serviceID
-                                            	WHERE recordID=:recordID', $vars);
+                                                serviceID=:serviceID
+                                                WHERE recordID=:recordID', $vars);
 
             return $serviceID;
         }
@@ -2409,8 +2409,8 @@ class Form
             $vars = array(':recordID' => (int)$recordID,
                           ':userID' => $userID, );
             $res = $this->db->prepared_query('UPDATE records SET
-                                            	userID=:userID
-                                            	WHERE recordID=:recordID', $vars);
+                                                userID=:userID
+                                                WHERE recordID=:recordID', $vars);
 
             // write log entry
             require_once 'VAMC_Directory.php';
@@ -2468,7 +2468,7 @@ class Form
 
         $vars = array(':recordID' => $recordID);
         $this->db->prepared_query('UPDATE category_count SET count = 0
-    								WHERE recordID=:recordID', $vars);
+                                                                WHERE recordID=:recordID', $vars);
 
         foreach ($categories as $category)
         {
@@ -2542,8 +2542,8 @@ class Form
                     return 0;
             }
 
-	    if ($q['id'] === 'userID') {
-            	$q['match'] = htmlspecialchars_decode($q['match'], ENT_QUOTES);
+            if ($q['id'] === 'userID') {
+                $q['match'] = htmlspecialchars_decode($q['match'], ENT_QUOTES);
             }
             $vars[':' . $q['id'] . $count] = $q['match'];
             switch ($q['id']) {
@@ -2694,8 +2694,8 @@ class Form
                                 if (is_numeric($vars[':stepID' . $count]))
                                 {
                                     $joins .= "LEFT JOIN (SELECT * FROM records_workflow_state
-                									WHERE stepID=:stepID{$count}) rj_stepID{$count}
-                									USING (recordID) ";
+                                                                                        WHERE stepID=:stepID{$count}) rj_stepID{$count}
+                                                                                        USING (recordID) ";
                                     // Backwards Compatibility
                                     $conditions .= "{$gate}rj_stepID{$count}.stepID = :stepID{$count}";
                                 }
@@ -2742,8 +2742,8 @@ class Form
                                 if (is_numeric($vars[':stepID' . $count]))
                                 {
                                     $joins .= "LEFT JOIN (SELECT * FROM records_workflow_state
-                									WHERE stepID != :stepID{$count}) rj_stepID{$count}
-                									USING (recordID) ";
+                                                                                        WHERE stepID != :stepID{$count}) rj_stepID{$count}
+                                                                                        USING (recordID) ";
                                     // Backwards Compatibility
                                     $conditions .= "{$gate}rj_stepID{$count}.stepID != :stepID{$count}";
                                 }
@@ -2788,8 +2788,8 @@ class Form
 
                         $vars[':indicatorID' . $count] = $q['indicatorID'];
                         $joins .= "LEFT JOIN (SELECT recordID, indicatorID, series, data FROM data
-										WHERE indicatorID=:indicatorID{$count}) lj_data{$count}
-										USING (recordID) ";
+                                                                                WHERE indicatorID=:indicatorID{$count}) lj_data{$count}
+                                                                                USING (recordID) ";
                     }
                     else
                     {
@@ -2856,7 +2856,7 @@ class Form
                     }
 
                     break;
-                case 'dependencyID':	//search records_dependencies
+                case 'dependencyID':    //search records_dependencies
                     if (!isset($q['indicatorID']) || !is_numeric($q['indicatorID']))
                     {
                         return 0;
@@ -2864,9 +2864,9 @@ class Form
                     // Backwards Compatibility
                     $vars[':indicatorID' . $count] = $q['indicatorID'];
                     $joins .= "LEFT JOIN (SELECT *, time as `depTime_{$q['indicatorID']}` FROM records_dependencies
-								WHERE dependencyID=:indicatorID{$count}
+                                                                WHERE dependencyID=:indicatorID{$count}
                                     AND filled{$operator}:dependencyID{$count}) lj_dependency{$count}
-								USING (recordID) ";
+                                                                USING (recordID) ";
                     $conditions .= "{$gate}lj_dependency{$count}.dependencyID = :indicatorID{$count}";
 
                     break;
@@ -2903,7 +2903,7 @@ class Form
                         break;
                     case 'status':
                         $joins .= 'LEFT JOIN (SELECT * FROM records_workflow_state) lj_status USING (recordID)
-							   LEFT JOIN (SELECT stepID, stepTitle FROM workflow_steps) lj_steps ON (lj_status.stepID = lj_steps.stepID) ';
+                                                           LEFT JOIN (SELECT stepID, stepTitle FROM workflow_steps) lj_steps ON (lj_status.stepID = lj_steps.stepID) ';
 
                         break;
                     case 'categoryName':
@@ -2997,14 +2997,14 @@ class Form
         if ($joinSearchAllData)
         {
             $joins .= "INNER JOIN (SELECT indicatorID, format FROM indicators
-									WHERE format != 'orgchart_employee'
-										AND format != 'orgchart_position'
-										AND format != 'orgchart_group') rj_AllData ON (lj_data.indicatorID = rj_AllData.indicatorID) ";
+                                                                        WHERE format != 'orgchart_employee'
+                                                                                AND format != 'orgchart_position'
+                                                                                AND format != 'orgchart_group') rj_AllData ON (lj_data.indicatorID = rj_AllData.indicatorID) ";
         }
         if ($joinSearchOrgchartEmployeeData)
         {
             $joins .= "INNER JOIN (SELECT indicatorID, format FROM indicators
-									WHERE format = 'orgchart_employee') rj_OCEmployeeData ON (lj_data.indicatorID = rj_OCEmployeeData.indicatorID) ";
+                                                                        WHERE format = 'orgchart_employee') rj_OCEmployeeData ON (lj_data.indicatorID = rj_OCEmployeeData.indicatorID) ";
         }
 
         if ($joinInitiatorNames)
@@ -3013,7 +3013,7 @@ class Form
         }
 
         $res = $this->db->prepared_query('SELECT * FROM records
-    										' . $joins . '
+                                                                                ' . $joins . '
                                             WHERE ' . $conditions . $sort . $limit, $vars);
 
         $data = array();
@@ -3028,10 +3028,10 @@ class Form
         if ($joinCategoryID)
         {
             $res2 = $this->db->prepared_query('SELECT * FROM category_count
-    											LEFT JOIN categories USING (categoryID)
-    											WHERE recordID IN (' . $recordIDs . ')
-    												AND disabled = 0
-    												AND count > 0', array());
+                                                                                        LEFT JOIN categories USING (categoryID)
+                                                                                        WHERE recordID IN (' . $recordIDs . ')
+                                                                                                AND disabled = 0
+                                                                                                AND count > 0', array());
             foreach ($res2 as $item)
             {
                 $data[$item['recordID']]['categoryNames'][] = $item['categoryName'];
@@ -3042,9 +3042,9 @@ class Form
         if ($joinAllCategoryID)
         {
             $res2 = $this->db->prepared_query('SELECT * FROM category_count
-    											LEFT JOIN categories USING (categoryID)
-    											WHERE recordID IN (' . $recordIDs . ')
-    												AND count > 0', array());
+                                                                                        LEFT JOIN categories USING (categoryID)
+                                                                                        WHERE recordID IN (' . $recordIDs . ')
+                                                                                                AND count > 0', array());
             foreach ($res2 as $item)
             {
                 $data[$item['recordID']]['categoryNamesUnabridged'][] = $item['categoryName'];
@@ -3055,9 +3055,9 @@ class Form
         if ($joinRecordsDependencies)
         {
             $res2 = $this->db->prepared_query('SELECT * FROM records_dependencies
-    											LEFT JOIN dependencies USING (dependencyID)
-    											WHERE recordID IN (' . $recordIDs . ')
-    												AND filled != 0', array());
+                                                                                        LEFT JOIN dependencies USING (dependencyID)
+                                                                                        WHERE recordID IN (' . $recordIDs . ')
+                                                                                                AND filled != 0', array());
             foreach ($res2 as $item)
             {
                 $data[$item['recordID']]['recordsDependencies'][$item['dependencyID']]['time'] = $item['time'];
@@ -3071,9 +3071,9 @@ class Form
             $dir = new VAMC_Directory;
 
             $res2 = $this->db->prepared_query('SELECT recordID, stepID, userID, time, description, actionTextPasttense, actionType, comment FROM action_history
-    											LEFT JOIN dependencies USING (dependencyID)
-    											LEFT JOIN actions USING (actionType)
-    											WHERE recordID IN (' . $recordIDs . ')
+                                                                                        LEFT JOIN dependencies USING (dependencyID)
+                                                                                        LEFT JOIN actions USING (actionType)
+                                                                                        WHERE recordID IN (' . $recordIDs . ')
                                                 ORDER BY time', array());
             foreach ($res2 as $item)
             {
@@ -3250,8 +3250,8 @@ class Form
 
         $strSQL = "SELECT *, indicators.parentID as parentIndicatorID, categories.parentID as parentCategoryID, is_sensitive, indicators.disabled as isDisabled FROM indicators ".
                     "LEFT JOIN categories USING (categoryID) ".
-					"WHERE indicators.disabled <= 1 ".
-					    "AND categories.disabled = 0" . $orderBy;
+                                        "WHERE indicators.disabled <= 1 ".
+                                            "AND categories.disabled = 0" . $orderBy;
 
         $resAll = $this->db->prepared_query($strSQL, $vars);
 
@@ -3400,7 +3400,7 @@ class Form
                     AND count > 0
                     AND dependencyID < 0
                     AND (indicatorID_for_assigned_empUID != 0
-    		            OR indicatorID_for_assigned_groupID != 0)',
+                            OR indicatorID_for_assigned_groupID != 0)',
             $vars
             );
 
@@ -3478,8 +3478,8 @@ class Form
                 $var = array(':series' => (int)$series,
                              ':recordID' => (int)$recordID, );
                 $res2 = $this->db->prepared_query('SELECT data, timestamp, indicatorID, groupID FROM data
-                									LEFT JOIN indicator_mask USING (indicatorID)
-                									WHERE indicatorID IN (' . $indicatorList . ') AND series=:series AND recordID=:recordID', $var);
+                                                                                        LEFT JOIN indicator_mask USING (indicatorID)
+                                                                                        WHERE indicatorID IN (' . $indicatorList . ') AND series=:series AND recordID=:recordID', $var);
 
                 foreach ($res2 as $resIn)
                 {
@@ -3654,7 +3654,7 @@ class Form
         if (!copy($sourceFile, $destFile)) {
             $errors = error_get_last();
             return $errors;
-        } 
+        }
         return 1;
     }
 
@@ -3668,12 +3668,12 @@ class Form
 
         return $data;
     }
-    
+
     public function permanentlyDeleteRecord($recordID) {
         /*if ($_POST['CSRFToken'] != $_SESSION['CSRFToken']) {
             return 0;
         }*/
-        
+
         $vars = array(
             ':time' => time(),
             ':date' => '0',
@@ -3686,7 +3686,7 @@ class Form
             ':isWritableUser' => '0',
             ':isWritableGroup' => '0',
             ':recordID' => $recordID);
-                          
+
         $res = $this->db->prepared_query('UPDATE records SET
         deleted=:time,
         date=:date,
@@ -3701,34 +3701,34 @@ class Form
         WHERE recordID=:recordID', $vars);
 
         $vars = array(':recordID' => $recordID);
-            
+
         $res = $this->db->prepared_query('DELETE FROM action_history WHERE recordID=:recordID', $vars);
-            
+
         $vars = array(':recordID' => $recordID,
             ':userID' => '',
             ':dependencyID' => 0,
             ':actionType' => 'deleted',
             ':actionTypeID' => 4,
             ':time' => time() );
-                
+
         $res = $this->db->prepared_query('INSERT INTO action_history (recordID, userID, dependencyID, actionType, actionTypeID, time)
         VALUES (:recordID, :userID, :dependencyID, :actionType, :actionTypeID, :time)', $vars);
-            
-            
+
+
         $vars = array(':recordID' => $recordID);
-            
+
         $this->db->prepared_query('DELETE FROM records_workflow_state WHERE recordID=:recordID', $vars);
-            
-            
+
+
         $vars = array(':recordID' => $recordID);
-            
+
         $res = $this->db->prepared_query('DELETE FROM tags WHERE recordID=:recordID', $vars);
-            
-            
+
+
         $vars = array(':recordID' => $recordID);
-            
+
         $this->db->prepared_query('DELETE FROM records_dependencies WHERE recordID=:recordID', $vars);
-            
+
         return 1;
     }
 
