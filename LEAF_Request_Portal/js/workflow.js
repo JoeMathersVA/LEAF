@@ -15,6 +15,7 @@ var LeafWorkflow = function(containerID, CSRFToken) {
     var antiDblClick = 0;
     var actionPreconditionFunc;
     var actionSuccessCallback;
+    var actionApplyCallback;
     var rootURL = '';
 
     /**
@@ -98,6 +99,9 @@ var LeafWorkflow = function(containerID, CSRFToken) {
                 $("#workflowbox_dep" + data['dependencyID']).html('<div style="border: 2px solid black; text-align: center; font-size: 24px; font-weight: bold; background: white; padding: 16px; width: 95%">Error: Workflow Events may not have triggered</div>');
             }
         });
+        if (actionApplyCallback !== undefined) {
+            actionApplyCallback();
+        }
     }
 
     /**
@@ -408,6 +412,14 @@ var LeafWorkflow = function(containerID, CSRFToken) {
 
     /**
      * @memberOf LeafWorkflow
+     */
+    function setActionApplyCallback(func) {
+        actionApplyCallback = func;
+    }
+
+
+    /**
+     * @memberOf LeafWorkflow
      * func should accept 2 arguments:
      *     data - {
      *                 idx: index matching the current action for data.step.dependencyActions[]
@@ -423,6 +435,7 @@ var LeafWorkflow = function(containerID, CSRFToken) {
         getWorkflow: getWorkflow,
         setActionPreconditionFunc: setActionPreconditionFunc,
         setActionSuccessCallback: setActionSuccessCallback,
+        setActionApplyCallback: setActionApplyCallback,
         setRootURL: function(url) { rootURL = url; }
     }
 };
