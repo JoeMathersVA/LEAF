@@ -1,0 +1,311 @@
+JavaScript Console
+
+<!-- TOP -->
+<style>
+.blockIndicator_{{ iID }} {
+	display: none;
+}
+  
+
+
+</style>
+
+
+<!-- BOTTOM -->
+
+<style>
+#subIndicator_{{ iID }}_1 .printsubheading{
+    display: none;
+}
+  
+iframe#groupMembers {
+  	width: 400px;
+  	height: 180px;
+  	overflow: hidden;
+  	display:none;
+}
+#maincontent {
+  overflow: hidden;
+}
+
+</style>
+<iframe id="groupMembers" scrolling="no" style="position: relative;"></iframe>
+<div id="quarterlyTotals">
+  <p>Total Hours: <b id="report_totals_id4"></b></p>
+  <p>Total Veterans: <b id="report_totals_id5"></b></p>
+  <p>Total Minority Veterans: <b id="report_totals_id6"></b></p>
+  <p>Percent Minority Veterans: <b id="report_totals_id8"></b></p>
+</div>
+
+<div id="grid"></div>
+
+
+<script>
+var query, formGrid;
+var el_iframe = document.querySelector('iframe#groupMembers');
+
+function getGroupMembers(groupID){
+  	if (!isNaN(groupID)){
+      
+      let url = '../orgchart/?a=view_group&groupID=' + groupID;
+      el_iframe.setAttribute("src", url + "&iframe=1");
+      el_iframe.addEventListener('load', function(){
+        
+      	setTimeout(function(){
+        let groupContainerDiv = el_iframe.contentWindow.document.body.querySelector('#group');
+        groupContainerDiv.style.height = '180px';
+        groupContainerDiv.style.width = '400px';
+        groupContainerDiv.style.padding = '0.2em';
+     	groupContainerDiv.style.transform = 'translate(-6px,-12px)';
+      	let empButtonsNodes = el_iframe.contentWindow.document.body.querySelectorAll('div[id="employee"] a[class="buttonNorm"]');
+        let empButtonsArr = Array.prototype.slice.call(empButtonsNodes);
+          
+        groupContainerDiv.innerHTML = '';
+        groupContainerDiv.innerHTML += '<p><b>Other Members of this Group include:</b></p>';
+        el_iframe.style.display = 'block';
+       	empButtonsArr.forEach(function(btn){
+          let btnHTML = btn.innerHTML;
+          groupContainerDiv.innerHTML += '<p>' + btnHTML + '</p>';
+        })
+        },500);
+      }); 
+    } 
+}
+  
+  
+  
+  
+function getData(search_year, time_start, time_end, groupID){
+    query = new LeafFormQuery();
+
+  	let searchQuery = {
+      "terms": [
+        {"id": "categoryID", "operator": "=", "match": "form_ce8a4", "gate": "AND"},
+        {"id": "data","indicatorID":"14","operator":"=","match": groupID.toString(),"gate":"AND"},
+        {"id": "data","indicatorID":"2","operator":">=","match": time_start,"gate":"AND"},
+        {"id": "data","indicatorID":"2","operator":"<=","match": time_end,"gate":"AND"},
+        {"id": "deleted","operator":"=","match":0,"gate":"AND"}
+      ],
+      "joins":["service"],
+      "sort":{},
+      "getData":["13","2","9","14","10","6","1","8","12","17","4","5","16","15"]
+    }
+    let columnInfo = [
+      {name: 'UID', indicatorID: 'uid', editable: false, callback: function(data, blob){
+        $('#' + data.cellContainerID).html(data.recordID);
+      }},
+      {indicatorID: "15", name: "VISN/District", editable: false},
+      {indicatorID: "14", name: "Facility", editable: false},
+      {indicatorID: "12", name: "Primary MVPC", editable: false},
+      {indicatorID: "13", name: "Alternate MVPC", editable: false},
+      {indicatorID: "2", name: "Date of Event", editable: false},
+      {indicatorID: "1", name: "Outreach Activity", editable: false}, 
+      {indicatorID: "9", name: "Name of Event, Event Description, and Type of Info Provided", editable: false},
+      {indicatorID: "4", name: "Total Event Hours", editable: false},   
+      {indicatorID: "5", name: "Total Number of Veterans", editable: false},
+      {indicatorID: "6", name: "Number of Minority Veterans", editable: false},
+      {indicatorID: "8", name: "Percentage of Minority Veterans", editable: false},
+      {indicatorID: "16", name: "Virtual  Event", editable: false},
+      {indicatorID: "10", name: "Targeted Audience", editable: false},
+      {indicatorID: "17", name: "State(s)  Outreach Conducted", editable: false}
+    ];
+    query.importQuery(searchQuery);
+  
+  	
+    query.onSuccess(function(res){
+      	postAlert = false;
+        let arrRes = [];
+        for (let key in res){
+            arrRes.push(JSON.parse(JSON.stringify(res[key])));
+        }            
+        let numericIndicators = {
+            'id4': [],
+            'id5': [],
+            'id6': [],
+            'id8': []
+        };
+        let indicatorsToGet = ['id4','id5','id6','id8'];
+      
+        //populate the numericIndicators key values 
+        arrRes.forEach(function(resObj){
+            let s1_val = JSON.parse(JSON.stringify(resObj.s1));
+            for (let key in s1_val){
+                if (indicatorsToGet.indexOf(key) !== -1 && s1_val[key] !== null && s1_val[key] !== ''){
+                    numericIndicators[key].push(parseFloat(s1_val[key]));
+                }
+            }
+        });
+      	
+        for (let key in numericIndicators){
+            let elToUpdate = document.getElementById('report_totals_'+key);
+            if (key === 'id8'){
+                let total = numericIndicators[key].reduce(function(acc, current){
+                    return acc + current;
+                }, 0);
+                let average = numericIndicators[key].length > 0 ? total/(numericIndicators[key].length) : 0;
+                elToUpdate.innerHTML = average.toFixed(1);  
+            } else {
+                let sum = numericIndicators[key].reduce(function(acc, current){     
+                    return acc + current;
+                }, 0);
+                elToUpdate.innerHTML = sum;
+            }
+        }       	
+      
+      
+		var recordIDs = '';
+        for (let i in res){
+          recordIDs += res[i].recordID + ',';
+        }
+        formGrid = new LeafFormGrid('grid');
+        formGrid.hideIndex();
+        formGrid.setDataBlob(res);
+        formGrid.setHeaders(columnInfo);
+        formGrid.loadData(recordIDs);
+      
+      	setTimeout(function(){
+          	let hasAllVals = true;
+          	let numRecords = formGrid.getCurrentData().length;
+          	for (let key in numericIndicators){
+            	if (numericIndicators[key].length !== numRecords){
+					hasAllVals = false;
+                }	
+            } 	 
+      	
+            if (!hasAllVals){
+              alert('At least one of the entries in this report contains a blank numeric field.\nPlease review these entries');
+            }
+        	
+        },1500);
+    });
+	query.execute();
+}  
+   
+//uses facility name to get unique part of region name, which is then used to get regionID 
+//indicators 24 and 25 then updated using groupID and regionID.  
+function getGroupListAndRoute(groupName, groupID){
+  	//[{"groupID":"<gID>","parentGroupID":null,"name":"<gName>","groupDescription":""},]
+	$.ajax({
+		type: 'GET',
+		url: './api/system/groups', 
+		success: function(res){
+          	res = res || 0;
+          	if (res !== 0 && res.length > 0) { 
+              	//unique substring of full region name
+              	let regionNamePiece = getRegionNameToSearch(groupName);
+                let groupObj = res.filter(function(obj){
+					return obj.name.indexOf(regionNamePiece) !== -1
+                });
+              	if (groupObj.length === 1){
+                  	let regionName = groupObj[0].name;
+                	let regionID = parseInt(groupObj[0].groupID);
+                    //route 
+                    if (groupID && regionID){
+                        let dataToPost = [{"24": groupID},{"25": regionID}];
+                        dataToPost.forEach(function(entry){
+                            portalAPI.Forms.modifyRequest(recordID, entry);                         
+                        });
+                    }                  
+                } else {
+                	return; 
+                }
+            }
+		},
+		cache: false
+	});
+}  
+ 
+//alerts and returns true if the group selected for the facility question is a region name  
+function checkIfRegionName(groupName) {
+  //Unassigned if not entered (eg from UID link after new empty row, older new request function) 
+  if (groupName.toLowerCase() === 'unassigned') {
+    return;
+  }
+  let VISNindex = groupName.indexOf('VISN');
+  let VHAindex = groupName.indexOf('VHA');		//only VISN region groups also have VHA
+  let VBAindex = groupName.indexOf('VBA -');	//only VBA/NCA facility groups have dashes
+  let NCAindex = groupName.indexOf('NCA -');
+  if ((VISNindex !== -1 && VHAindex !== -1 ) ||  
+      (VISNindex === -1 && VBAindex === -1  && NCAindex === -1)){ 
+    alert('This appears to be a region group.  Please check your entry.');
+    return true;
+  } else return false;
+}
+
+//returns a unique part of the region name based on unique aspects of the facility name
+//call after checking that the groupName entered was not aactually a region name  
+function getRegionNameToSearch(groupName){ 
+  	let nameToSearch = "";
+	if (groupName.indexOf('VISN') !== -1) { 	//eg VISN 1 VHA -;
+		nameToSearch = groupName.slice(0, groupName.indexOf('-')) + "VHA -";   
+	} 
+	if (groupName.indexOf('VBA -') !== -1) { //eg Continental District VBA;
+		nameToSearch = groupName.slice(0, groupName.indexOf('VBA -')) + "District VBA";
+    }
+    if	(groupName.indexOf('NCA -') !== -1) {
+    	nameToSearch = groupName.slice(0, groupName.indexOf('NCA -')) + "District NCA";
+	}
+  	return nameToSearch;
+}  
+  
+function getQuarterlyReport(fiscal_year, quarter, facility){
+  	fiscal_year = fiscal_year || 0;
+  	quarter = quarter || 0;
+  	facility = facility || 0;
+  	
+	const quarter_times = {
+        "First Quarter": {start: '10/01', end:  '12/31'},
+        "Second Quarter": {start: '01/01', end:  '03/31'},
+        "Third Quarter": {start: '04/01', end:  '06/30'},
+        "Fourth Quarter": {start: '07/01', end:  '09/30'},
+    }
+    let iframe_input_indicator = 'xhrIndicator_19_1';
+    //initial load from report values
+    if (fiscal_year === 0 && quarter === 0 && facility === 0){
+      let fiscal_year_indicator = 'data_21_1';
+      let quarter_indicator = 'data_22_1';
+      let facility_indicator = 'data_23_1';
+      let el_fiscal_year = document.getElementById(fiscal_year_indicator);
+      let el_quarter = document.getElementById(quarter_indicator);
+      let el_facility = document.getElementById(facility_indicator);
+      fiscal_year = el_fiscal_year.textContent.trim();
+      quarter = el_quarter.textContent.trim();
+      facility = el_facility.textContent.trim();
+    }
+  	let isRegionName = checkIfRegionName(facility);
+  
+    if (fiscal_year && quarter && !isRegionName && facility){   
+      	$.ajax({
+            type: 'GET',
+            url: './api/form/' + recordID + '/data',
+            success: function(res){
+              	var groupID = parseInt(res["23"]["1"].value);
+          		if (typeof groupID == 'number'){
+                  	//get group members for viewing
+                  	getGroupMembers(groupID);
+                  	//routing for internal form.  uses facility name info to get region info, routes
+                  	getGroupListAndRoute(facility, groupID); 
+                  	
+					//get variable for search query
+                  	let search_year = (quarter === "First Quarter") ? (fiscal_year.replace('FY', '20') - 1).toString() :
+                    	fiscal_year.replace('FY', '20');
+                    let time_start = quarter_times[quarter].start + "/" + search_year;
+                    let time_end = quarter_times[quarter].end + "/" + search_year;
+                  
+                  	getData(search_year, time_start, time_end, groupID);
+               	}
+            },
+           cache: false
+       });                                             
+    }    
+}
+
+var isInbox = window.location.href.indexOf('inbox') !== -1 ? true : false;
+if (!isInbox){  //prevents an error on inbox quick view button
+  $(document).ready(function(){
+
+      getQuarterlyReport();
+
+  });
+}
+</script>

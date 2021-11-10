@@ -1,0 +1,351 @@
+<!-- Facility Name, 14, TOP -->
+<script>
+var facilityIndicator = '14';
+var facilityInputJQ = $('#'+ facilityIndicator); 
+var groupTextSelector = '#grpSel_14 .groupSelected .groupSelectorTitle';
+
+var regionIndicator = '15';
+var elSaveBtn;
+
+  
+function updateGroupNameFromSelector(){
+    let elGroupText = document.querySelector(groupTextSelector);
+    return (elGroupText !== null) ? elGroupText.textContent.trim() : null;
+}
+  
+  
+function checkIfRegionName(groupName){
+  if (groupName.toLowerCase() === 'unassigned'){
+    return;
+  }
+  let VISNindex = groupName.indexOf('VISN');
+  let VHAindex = groupName.indexOf('VHA');		//only VISN region groups also have VHA
+  let VBAindex = groupName.indexOf('VBA -');	//only VBA/NCA facility groups have dashes
+  let NCAindex = groupName.indexOf('NCA -');
+  if ((VISNindex !== -1 && VHAindex !== -1 ) ||  
+      (VISNindex === -1 && VBAindex === -1  && NCAindex === -1)){ 
+    alert('This appears to be a region group.  Please check your entry.');
+    return true;
+  } else return false;
+}
+//returns a unique part of the region name based on unique aspects of the facility name  
+function getRegionNameToSearch(groupName){ 
+  	let nameToSearch = "";
+	if (groupName.indexOf('VISN') !== -1) { 	//eg VISN 1 VHA -;
+		nameToSearch = groupName.slice(0, groupName.indexOf('-')) + "VHA -";   
+	} 
+	if (groupName.indexOf('VBA -') !== -1) { //eg Continental District VBA;
+		nameToSearch = groupName.slice(0, groupName.indexOf('VBA -')) + "District VBA";
+    }
+    if	(groupName.indexOf('NCA -') !== -1) {
+    	nameToSearch = groupName.slice(0, groupName.indexOf('NCA -')) + "District NCA";
+	}
+  	return nameToSearch;
+}   
+  
+function updateRegionForIndicator15(){
+    let facilityNameSelected = updateGroupNameFromSelector();
+    if (facilityNameSelected !== null & facilityNameSelected !== undefined){
+        let isRegionName = checkIfRegionName(facilityNameSelected);
+        if (!isRegionName){
+			let substringToSearch = getRegionNameToSearch(facilityNameSelected);
+            //use current val for indicator 14 to get the corresponding region name from system/groups;
+            $.ajax({
+                type: 'GET',
+                url: './api/system/groups',
+                success: function(res) {
+                    
+                    if (res){
+						let regionInfo = res.filter(function(group){
+                        	return group.name.indexOf(substringToSearch) !== -1;
+                        });
+                     
+                      	if (regionInfo && regionInfo.length === 1 && regionInfo[0].groupID) {
+        					portalAPI.Forms.modifyRequest(recordID, {"15": regionInfo[0].groupID},
+                                         function(res){
+              								elSaveBtn.removeEventListener('click', updateRegionForIndicator15);
+                                            location.reload();
+                            });
+                        }
+                    }
+				}
+            });
+      	}
+	} 
+}
+$(document).ready(function(){
+  	if(typeof formGrid !== 'undefined'){
+      let saveBtnID = (formGrid.form().dialog().containerID).replace('_xhrDialog', '_button_save');
+      elSaveBtn = document.getElementById(saveBtnID);
+      elSaveBtn.addEventListener('click', updateRegionForIndicator15);
+    }
+});
+</script>
+
+
+<!-- Total Number Veterans, 5, TOP -->
+<script>
+var totalVetIndicator = '5';
+var totalMinVetIndicator = '6';
+var percentIndicator = '8';
+var elSaveBtn;
+var elInput5;
+
+var totalMinVets = null;
+var totalVets = null; 
+
+$(document).ready(function(){
+  
+  function checkPercentage(){
+  	totalVets = parseInt($('#5').val());
+    if (totalMinVets && totalVets && totalMinVets > totalVets){
+    	alert('The calculated percentage should not be greater than 100.\nPlease check your entry.');
+      	elInput5.value = '';
+    }  
+  }
+  
+  function totalVetsUpdatePercentForIndicator8(){
+    if (totalVets && totalMinVets && totalMinVets <= totalVets){
+      percentMinorities = 100 * (totalMinVets/totalVets);
+      let percentToFixed = percentMinorities.toFixed(1);
+      portalAPI.Forms.modifyRequest(recordID, {"8": percentToFixed},
+                                    function(res){
+          elSaveBtn.removeEventListener('click', totalVetsUpdatePercentForIndicator8);
+          location.reload();
+      });
+    } 
+  }
+  
+  //prevents an error on editor page if the form is accessed there
+  if(typeof formGrid !== 'undefined'){
+    //get current val for indicator 6
+    $.ajax({
+        type: 'GET',
+        url: './api/form/' + recordID + '/data',
+        success: function(res) {
+        	 totalMinVets = parseInt(res[totalMinVetIndicator]["1"].value);
+        }
+    });  
+  	let saveBtnID = (formGrid.form().dialog().containerID).replace('_xhrDialog', '_button_save');
+	elSaveBtn = document.getElementById(saveBtnID);
+  	elSaveBtn.addEventListener('click', totalVetsUpdatePercentForIndicator8);
+    elInput5 = document.getElementById('5');
+  	elInput5.addEventListener('change', checkPercentage);
+  }
+});
+</script>
+
+
+<!-- Number Min Vets, TOP -->
+<script>
+var totalVetIndicator = '5';
+var totalMinVetIndicator = '6';
+var percentIndicator = '8';
+var elSaveBtn;
+var elInputMinVets;
+
+var totalMinVets = null;
+var totalVets = null; 
+
+$(document).ready(function(){
+  
+  function checkPercentage(){
+  	totalMinVets = parseInt($('#'+ totalMinVetIndicator).val());
+    if (totalMinVets && totalVets && totalMinVets > totalVets){
+    	alert('The calculated percentage should not be greater than 100.\nPlease check your entry.');
+      	elInputMinVets.value = '';
+    }  
+  }
+  
+  function totalMinVetsUpdatePercentForIndicator8(){
+    if (totalVets && totalMinVets && totalMinVets <= totalVets){
+      percentMinorities = 100 * (totalMinVets/totalVets);
+      let percentToFixed = percentMinorities.toFixed(1);
+      portalAPI.Forms.modifyRequest(recordID, {"8": percentToFixed},
+                                    function(res){
+          elSaveBtn.removeEventListener('click', totalMinVetsUpdatePercentForIndicator8);
+          elInputMinVets.removeEventListener('change', checkPercentage);
+          location.reload();
+      });
+    } 
+  }
+  
+  //prevents an error on editor page if the form is accessed there
+  if(typeof formGrid !== 'undefined'){
+    //get current val for indicator 5 (total vets)
+    $.ajax({
+        type: 'GET',
+        url: './api/form/' + recordID + '/data',
+        success: function(res) {
+        	 totalVets = parseInt(res[totalVetIndicator]["1"].value);
+        }
+    });  
+  	let saveBtnID = (formGrid.form().dialog().containerID).replace('_xhrDialog', '_button_save');
+	elSaveBtn = document.getElementById(saveBtnID);
+  	elSaveBtn.addEventListener('click', totalMinVetsUpdatePercentForIndicator8);
+    elInputMinVets = document.getElementById(totalMinVetIndicator);
+  	elInputMinVets.addEventListener('change', checkPercentage);
+  }
+});
+</script>
+
+<!-- JS Console, TOP -->
+<style>
+.blockIndicator_{{ iID }} {
+	display: none;
+}
+
+   /* stickies dialog menu.  does not work in IE */
+  form[id^="LeafForm"][id$="_record"] > div {
+  	position: relative;
+    padding-top: 35px;
+  }
+/* buttons already have absolute position */
+  form[id^="LeafForm"][id$="_record"] > div button {
+  	z-index: 1001;
+    margin: 0.25em;
+    top: 0;
+  }
+  form[id^="LeafForm"][id$="_record"] > div > div:not([id]) {
+	position: absolute;
+    top: 0;
+    width: 100%;
+    height: 34px;
+    background-color: white;
+    z-index: 1000;  
+  } 
+
+</style>
+
+
+
+<script>
+var totalVetsID = '5';
+var totalMinorityID = '6';
+var percentID = '8';
+var facilityIndID = '14';  
+var districtIndID = '15';   
+  
+var groupTextSelector = '#grpSel_14 .groupSelected .groupSelectorTitle';   
+//must be selected (blue) to get the text, so using click
+var groupSelectorDiv = document.getElementById('grpSel_14');
+
+
+   
+var vetsInputJQ = $('#'+ totalVetsID);
+var minorityVetsInputJQ =  $('#'+ totalMinorityID); 
+var percentMinorityVetsInputJQ =  $('#'+ percentID); 
+var facilityInputJQ = $('#'+ facilityIndID);  
+var districtInputJQ = $('#'+ districtIndID);
+
+/* returns an elements top Y position, number*/
+function getPositionY(element) {
+    let bounding_rect = element.getBoundingClientRect();
+    return bounding_rect.y;
+}  
+
+function updatePercentForIndicator8(){
+  	if (vetsInputJQ.val() && minorityVetsInputJQ.val()){
+    	let percentMinorities = 100 * (minorityVetsInputJQ.val()/vetsInputJQ.val());
+      	let percentToFixed = percentMinorities.toFixed(1);
+      	percentMinorityVetsInputJQ.val(percentToFixed);
+    } 
+}
+
+ 
+function updateGroupNameFromSelector(){
+  	let elGroupText = document.querySelector(groupTextSelector);
+  	return (elGroupText !== null) ? elGroupText.textContent.trim() : null; 
+}
+  
+function checkIfRegionName(groupName){
+  if (groupName.toLowerCase() === 'unassigned'){
+    return;
+  }
+  let VISNindex = groupName.indexOf('VISN');
+  let VHAindex = groupName.indexOf('VHA');		//only VISN region groups also have VHA
+  let VBAindex = groupName.indexOf('VBA -');	//only VBA/NCA facility groups have dashes
+  let NCAindex = groupName.indexOf('NCA -');
+  if ((VISNindex !== -1 && VHAindex !== -1 ) ||  
+      (VISNindex === -1 && VBAindex === -1  && NCAindex === -1)){ 
+    alert('This appears to be a region group.  Please check your entry.');
+    return true;
+  } else return false;
+}
+  
+//returns a unique part of the region name based on unique aspects of the facility name  
+function getRegionNameToSearch(groupName){ 
+  	let nameToSearch = "";
+	if (groupName.indexOf('VISN') !== -1) { 	//eg VISN 1 VHA -;
+		nameToSearch = groupName.slice(0, groupName.indexOf('-')) + "VHA -";   
+	} 
+	if (groupName.indexOf('VBA -') !== -1) { //eg Continental District VBA;
+		nameToSearch = groupName.slice(0, groupName.indexOf('VBA -')) + "District VBA";
+    }
+    if	(groupName.indexOf('NCA -') !== -1) {
+    	nameToSearch = groupName.slice(0, groupName.indexOf('NCA -')) + "District NCA";
+	}
+  	return nameToSearch;
+} 
+  
+function updateRegionForIndicator15(){
+  	let facilityNameSelected = updateGroupNameFromSelector();
+	if (facilityNameSelected !== null){
+    	let isRegionName = checkIfRegionName(facilityNameSelected);
+      	if (!isRegionName){
+        	let nameToSearch = getRegionNameToSearch(facilityNameSelected);
+          	
+          	$.ajax({
+				type: 'GET',
+				url: './api/system/groups',
+				success: function(res){
+					let regionInfoObj = res.filter(function(grpObj){
+               			return grpObj.name.indexOf(nameToSearch) !== -1
+                    });
+                  	if (regionInfoObj && regionInfoObj.length === 1){
+                  		let regionID = regionInfoObj[0].groupID;
+                      	//update region/district value
+                      	districtInputJQ.val(regionID);
+                      	//updates display before save or validation will fail.
+                      	let grpSel14Input = document.querySelector('#grpSel_'+facilityIndID+' input.groupSelectorInput');
+                      	let grpSel15Input = document.querySelector('#grpSel_'+districtIndID+' input.groupSelectorInput');
+                      	if (grpSel14Input && grpSel15Input){
+                          	grpSel14Input.value = 'group#' + facilityInputJQ.val();
+                        	grpSel15Input.value = 'group#' + districtInputJQ.val();
+                        }
+                    }
+                },
+              	cache: false
+            });
+        } 
+    }
+}
+
+$(document).ready(function(){
+
+  elParentForm = document.querySelector('form[id^="LeafForm"][id$="_record"]');
+  elCancelSave = document.getElementById('form-xhr-cancel-save-menu');
+  
+  
+  window.addEventListener('scroll', function(){
+      if (elParentForm && elCancelSave){
+        let parent_Y = getPositionY(elParentForm);
+        elCancelSave.style.top = parent_Y > 0 ? 0 : (-1 * parent_Y) + "px";
+       // elButtonsArr.forEach(function(btn){
+       //   btn.style.top = parent_Y > 0 ? 0 : (-1 * parent_Y) + "px";
+       // });
+      }
+    });
+  groupSelectorDiv.addEventListener('click', updateRegionForIndicator15);
+  $('#'+ totalVetsID + ', #'+ totalMinorityID).on('keyup', updatePercentForIndicator8);
+});
+
+</script>
+
+
+<!-- JS Console, BOTTOM -->
+<style>
+#subIndicator_{{ iID }}_1 .printsubheading{
+    display: none;
+}
+</style>
