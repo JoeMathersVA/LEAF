@@ -2636,8 +2636,8 @@ class Form
                             $vars[':dateSubmitted' . $count] += 86400; // set to end of day
                             // no break
                         default:
-                            $conditions .= "{$gate}submitted {$operator} :dateSubmitted{$count}";
-
+                            $conditions .= "{$gate}submitted {$operator} :dateSubmitted{$count} ";
+                            $conditions .= "AND submitted != '0'";
                             break;
                     }
 
