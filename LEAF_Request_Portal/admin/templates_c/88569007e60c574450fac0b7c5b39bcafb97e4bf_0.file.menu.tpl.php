@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 3.1.33, created on 2021-04-23 22:53:52
+/* Smarty version 3.1.33, created on 2021-10-10 02:20:32
   from '/var/www/html/LEAF_Request_Portal/admin/templates/menu.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   'version' => '3.1.33',
-  'unifunc' => 'content_60835000ab2364_11525756',
+  'unifunc' => 'content_61624df02d7325_30014557',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '88569007e60c574450fac0b7c5b39bcafb97e4bf' => 
     array (
       0 => '/var/www/html/LEAF_Request_Portal/admin/templates/menu.tpl',
-      1 => 1613857664,
+      1 => 1633811349,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_60835000ab2364_11525756 (Smarty_Internal_Template $_smarty_tpl) {
+function content_61624df02d7325_30014557 (Smarty_Internal_Template $_smarty_tpl) {
 ?><ul>
 
     <!-- Menu tooggle on smaller screens  -->
@@ -30,7 +30,7 @@ function content_60835000ab2364_11525756 (Smarty_Internal_Template $_smarty_tpl)
 
     <li class="leaf-width-5rem leaf-mob-menu"><a href="../">Home</a></li>
 
-    <li class="leaf-width-8rem leaf-mob-menu"><a href="../?a=reports">Report Builder</a></li>
+    <li class="leaf-width-8rem leaf-mob-menu"><a href="../?a=reports&v=3">Report Builder</a></li>
 
     <li class="leaf-width-8rem leaf-mob-menu lev2">
         <a href="javascript:void(0);">Site Links</a>
@@ -80,6 +80,7 @@ function content_60835000ab2364_11525756 (Smarty_Internal_Template $_smarty_tpl)
                 <li><a href="../report.php?a=LEAF_import_data">Import Spreadsheet</a></li>
                 <li><a href="../report.php?a=LEAF_mass_action">Mass Action</a></li>
                 <li><a href="../report.php?a=LEAF_request_initiator_new_account">Initiator New Account</a></li>
+                <li><a href="../report.php?a=LEAF_input_table_report">Grid Splitter</a></li>
                 </ul>
             </li>
 

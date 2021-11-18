@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 3.1.33, created on 2021-04-12 11:29:41
+/* Smarty version 3.1.33, created on 2021-10-09 21:00:58
   from '/var/www/html/LEAF_Request_Portal/templates/menu.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   'version' => '3.1.33',
-  'unifunc' => 'content_60746765b66958_79451209',
+  'unifunc' => 'content_61623b4a0cb3f3_51164941',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '1bdf898d0d830cf7d0a21789f57aa3d0dd47dbac' => 
     array (
       0 => '/var/www/html/LEAF_Request_Portal/templates/menu.tpl',
-      1 => 1615409011,
+      1 => 1633811349,
       2 => 'file',
     ),
   ),
@@ -22,7 +22,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
     'file:menu_help.tpl' => 1,
   ),
 ),false)) {
-function content_60746765b66958_79451209 (Smarty_Internal_Template $_smarty_tpl) {
+function content_61623b4a0cb3f3_51164941 (Smarty_Internal_Template $_smarty_tpl) {
 if ($_smarty_tpl->tpl_vars['action']->value != '') {?>
     <a href="./" class="buttonNorm"><img src="../libs/dynicons/?img=go-home.svg&amp;w=16" role="button" />Main Page</a>
 <?php }?>
@@ -54,7 +54,7 @@ if ($_smarty_tpl->tpl_vars['hide_main_control']->value == 1) {
 
     function menu508(menuButton, subMenu, subMenuButton)
     {
-        $(menuButton).keypress(function(e) {
+        $(menuButton).keydown(function(e) {
             if (e.keyCode === 13) {
                 $(subMenu).css("display", "block");
                 $(menuButton).attr('aria-expanded', 'true');
@@ -62,10 +62,9 @@ if ($_smarty_tpl->tpl_vars['hide_main_control']->value == 1) {
             }
         });
 
-        $(subMenuButton).focusout(function() {
-                $(subMenu).css("display", "none");
-                $(menuButton).attr('aria-expanded', 'false');
-                $(menuButton).focus();
+        $(menuButton).focusout(function() {
+            $(subMenu).css("display", "none");
+            $(menuButton).attr('aria-expanded', 'false');
         });
     }
 <?php echo '</script'; ?>

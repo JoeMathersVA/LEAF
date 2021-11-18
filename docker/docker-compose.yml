@@ -15,9 +15,9 @@ services:
         - BUILD_UID=${BUILD_UID}
         - SMTP_HOST=smtp.leaf-portal
         - MAIL_HUB=smtp.leaf-portal
-    ports:
-      - 80:80
-      - 443:443
+    # ports:
+    #   - 80:80
+    #   - 443:443
     links:
       - mysql.leaf-portal
     volumes:
@@ -44,32 +44,32 @@ services:
       - "traefik.http.routers.leaf_monolith.entrypoints=web, web-secure"
       - "traefik.http.routers.leaf_monolith.tls.certresolver=dev_http"
 
-  swagger.leaf-portal:
-    image: leaf_swagger
-    container_name: leaf_swagger
-    env_file: 
-      - ./env_files/swagger_local.env      
-    build:
-      context: ../
-      dockerfile: docker/swagger/swagger.dockerfile
-    ports:
-      - "8081:8080" # debug only; use reverse-proxy http://localhost/swagger/
-    restart: 'always'
-    volumes:
-      - ./swagger/nexus-swagger.json:/usr/share/nginx/html/apiapi/nexus-swagger.json
-      - ./swagger/portal-swagger.json:/usr/share/nginx/html/apiapi/portal-swagger.json
-    networks:
-      traefik:
-      code-network:
-        aliases:
-          - swagger      
+  # swagger.leaf-portal:
+  #   image: leaf_swagger
+  #   container_name: leaf_swagger
+  #   env_file: 
+  #     - ./env_files/swagger_local.env      
+  #   build:
+  #     context: ../
+  #     dockerfile: docker/swagger/swagger.dockerfile
+  #   ports:
+  #     - "8081:8080" # debug only; use reverse-proxy http://localhost/swagger/
+  #   restart: 'always'
+  #   volumes:
+  #     - ./swagger/nexus-swagger.json:/usr/share/nginx/html/apiapi/nexus-swagger.json
+  #     - ./swagger/portal-swagger.json:/usr/share/nginx/html/apiapi/portal-swagger.json
+  #   networks:
+  #     traefik:
+  #     code-network:
+  #       aliases:
+  #         - swagger      
 
   mysql.leaf-portal:
     image: leaf_mysql
     container_name: leaf_mysql
     build:
-      context: ../
-      dockerfile: docker/mysql/mysql.dockerfile
+      context: ./
+      dockerfile: mysql/mysql.dockerfile
     env_file: 
       - ./env_files/mysql_local.env
       - ./env_files/secrets.env

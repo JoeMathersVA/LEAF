@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 3.1.33, created on 2021-04-23 22:53:52
+/* Smarty version 3.1.33, created on 2021-10-10 02:20:31
   from '/var/www/html/LEAF_Request_Portal/admin/templates/view_admin_menu.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   'version' => '3.1.33',
-  'unifunc' => 'content_608350009001a6_06205978',
+  'unifunc' => 'content_61624df00067f6_83281751',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '148fc5ba2bfd8ba86ad89e1f80cdc7373592b28d' => 
     array (
       0 => '/var/www/html/LEAF_Request_Portal/admin/templates/view_admin_menu.tpl',
-      1 => 1613857664,
+      1 => 1633811349,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_608350009001a6_06205978 (Smarty_Internal_Template $_smarty_tpl) {
+function content_61624df00067f6_83281751 (Smarty_Internal_Template $_smarty_tpl) {
 ?><div class="leaf-admin-content">
 
     <h3 role="heading" aria-level="1" tabindex="0">User Access</h3>
@@ -69,7 +69,7 @@ function content_608350009001a6_06205978 (Smarty_Internal_Template $_smarty_tpl)
             <span class="leaf-admin-btndesc">Edit site name, time zone, and other labels</span>
         </a>
 
-        <a href="../?a=reports" role="button" class="leaf-admin-button bg-blue-cool-10 lf-trans-blue">
+        <a href="../?a=reports&v=3" role="button" class="leaf-admin-button bg-blue-cool-10 lf-trans-blue">
             <i class="leaf-admin-btnicon fas fa-file-invoice text-blue-cool-50 leaf-icn-narrow4" alt="Report Builder" title="Report Builder"></i>
             <span class="leaf-admin-btntitle">Report Builder</span>
             <span class="leaf-admin-btndesc">Create custom reports</span>
@@ -159,6 +159,12 @@ function content_608350009001a6_06205978 (Smarty_Internal_Template $_smarty_tpl)
             <span class="leaf-admin-btndesc">Edit portal Sitemap links</span>
         </a>
 
+        <a href="../report.php?a=LEAF_table_input_report" role="button" class="leaf-admin-button bg-orange-10 lf-trans-orange">
+            <i class="leaf-admin-btnicon fas fa-file-export text-orange-50 leaf-icn-narrow2" alt="Sitemap Editor" title="Sitemap Editor"></i>
+            <span class="leaf-admin-btntitle">Grid Splitter</span>
+            <span class="leaf-admin-btndesc">Export grid form data to Excel spreadsheet</span>
+        </a>
+        
 </div>
 
 <?php echo '<script'; ?>

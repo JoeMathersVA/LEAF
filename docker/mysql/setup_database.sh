@@ -3,14 +3,14 @@
 
 printf '\n\nRunning sql scripts...'
 
-# mysql -uroot -p$MYSQL_ROOT_PASSWORD <<Set_Server_Defaults
-# SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
-# Set_Server_Defaults
+mysql -uroot -p$MYSQL_ROOT_PASSWORD <<Set_Server_Defaults
+SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
+Set_Server_Defaults
 
 
-# mysql -uroot -p$MYSQL_ROOT_PASSWORD <<GRANT_PRIVILEGES
-# GRANT ALL PRIVILEGES ON *.* TO 'tester'@'%' IDENTIFIED BY 'tester';
-# GRANT_PRIVILEGES
+mysql -uroot -p$MYSQL_ROOT_PASSWORD <<GRANT_PRIVILEGES
+GRANT ALL PRIVILEGES ON *.* TO 'tester'@'%' IDENTIFIED BY 'tester';
+GRANT_PRIVILEGES
 # mysql -utester -p$MYSQL_ROOT_PASSWORD leaf_users < /orgchart_boilerplate_empty.sql;
 # mysql -utester -p$MYSQL_ROOT_PASSWORD leaf_portal < /resource_database_boilerplate.sql;
 

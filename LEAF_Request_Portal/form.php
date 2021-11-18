@@ -6,7 +6,6 @@
 /*
     Form Generator
     Date Created: September 11, 2007
-
 */
 
 define('UPLOAD_DIR', './UPLOADS/'); // with trailing slash
@@ -2494,10 +2493,6 @@ class Form
         $count = 0;
         foreach ($query['terms'] as $q)
         {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
             // Logic for AND/OR Gate
             if ($count === 0) {
                 $gate = '';
@@ -2515,11 +2510,6 @@ class Form
                 }
             }
 
-<<<<<<< HEAD
-=======
->>>>>>> master
-=======
->>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
             $operator = '';
             switch ($q['operator']) {
                 case '>':
@@ -2882,8 +2872,6 @@ class Form
             $count++;
         }
 
-<<<<<<< HEAD
-=======
         // End Check for Conditions Query
         if ($count) {
             $conditions .= ') ';
@@ -2891,7 +2879,6 @@ class Form
             $conditions = '';
         }
 
->>>>>>> rc/210927/Sprint-15-C2/2468-2506-2193-2529-2193
         $joinCategoryID = false;
         $joinAllCategoryID = false;
         $joinRecords_Dependencies = false;

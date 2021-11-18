@@ -1,5 +1,5 @@
 # FROM pelentan/leaf-app-base:1.1 as base
-FROM leaf-app-base:1.2 as base
+FROM leaf-app-base:1.3 as base
 
 ARG SMTP_HOST 
 
