@@ -32,36 +32,43 @@ var intervalQueue = function() {
     }
 
     function start() {
-        interval = setInterval(function() {
-            while (loading <= maxConcurrent
-                && queue.length > 0) {
-                
-                loading++;
-                workerFunction(queue.shift()).then(
-                    function(result) { // fulfilled
-                        loaded++;
-                        loading--;
-                    },
-                    function(reason) {
-                        loaded++;
-                        loading--;
-                        if(typeof workerErrorFunction == 'function') {
-                            workerErrorFunction(reason);
-                        }
-                    } // rejected
-                );
-            }
-
-            // When finished
-            if (queue.length == 0
-                && loading == 0) {
-                clearInterval(interval);
-
-                if(typeof onCompleteCallback == 'function') {
-                    onCompleteCallback();
+        let promise = new Promise((resolve, reject) => {
+            interval = setInterval(function() {
+                while (loading <= maxConcurrent
+                    && queue.length > 0) {
+                    
+                    loading++;
+                    let item = queue.shift();
+                    workerFunction(item).then(
+                        function(result) { // fulfilled
+                            loaded++;
+                            loading--;
+                        },
+                        function(reason) {
+                            loaded++;
+                            loading--;
+                            if(typeof workerErrorFunction == 'function') {
+                                workerErrorFunction(item, reason);
+                            }
+                        } // rejected
+                    );
                 }
-            }
-        }, 100);
+    
+                // When finished
+                if (queue.length == 0
+                    && loading == 0) {
+                    clearInterval(interval);
+    
+                    if(typeof onCompleteCallback == 'function') {
+                        resolve(onCompleteCallback());
+                    }
+                    else {
+                        resolve('Complete');
+                    }
+                }
+            }, 100);
+        });
+        return promise;
     }
 
     return {
