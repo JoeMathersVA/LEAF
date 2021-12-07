@@ -12,6 +12,9 @@ var intervalQueue = function() {
     var interval = null;
 
     function setConcurrency(limit) {
+        if(limit > 6) {
+            console.log(`intervalQueue.js - Warning - setConcurrency(${limit}) may exceed browser limit of 6`);
+        }
         maxConcurrent = limit;
     }
 
