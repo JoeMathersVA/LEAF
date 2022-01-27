@@ -77,6 +77,10 @@
                         <td>The ID number of the request</td>
                     </tr>
                     <tr>
+                        <td><b>{{$formName}}</b></td>
+                        <td>The name of the form used for the request</td>
+                    </tr>
+                    <tr>
                         <td><b>{{$fullTitle}}</b></td>
                         <td>The full title of the request</td>
                     </tr>
@@ -451,7 +455,7 @@ $(function() {
         updateEditorSize();
     });
 
-    // Get initial email tempates for page from database
+    // Get initial email templates for page from database
 	$.ajax({
 		type: 'GET',
 		url: '../api/system/emailtemplates',
