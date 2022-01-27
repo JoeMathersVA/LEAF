@@ -579,10 +579,12 @@ class Email
 
         // Lookup approvers of current record so we can notify
         $vars = array(':recordID' => $recordID);
-        $strSQL = "SELECT users.userID AS approverID, sd.dependencyID, sd.stepID, ser.serviceID, ser.service, ser.groupID AS quadrad, users.groupID, rec.title, rec.lastStatus FROM records_workflow_state ".
+        $strSQL = "SELECT users.userID AS approverID, sd.dependencyID, sd.stepID, ser.serviceID, ser.service, ser.groupID AS quadrad, users.groupID, rec.title, c.categoryName, rec.lastStatus FROM records_workflow_state ".
             "LEFT JOIN records AS rec USING (recordID) ".
             "LEFT JOIN step_dependencies AS sd USING (stepID) ".
             "LEFT JOIN dependency_privs USING (dependencyID) ".
+            "LEFT JOIN category_count AS cc USING (recordID) ".
+            "LEFT JOIN categories AS c USING (categoryID) ".
             "LEFT JOIN users USING (groupID) ".
             "LEFT JOIN services AS ser USING (serviceID) ".
             "WHERE recordID=:recordID AND (active=1 OR active IS NULL)";
@@ -598,7 +600,8 @@ class Email
                 "recordID" => $recordID,
                 "service" => $approvers[0]['service'],
                 "lastStatus" => $approvers[0]['lastStatus'],
-                "siteRoot" => $this->siteRoot
+                "siteRoot" => $this->siteRoot,
+                "formName" => $approvers[0]['categoryName']
             ));
 
             if ($emailTemplateID < 2)
@@ -706,10 +709,12 @@ class Email
         } elseif ($emailTemplateID === -4) {
             // Record has no approver so if it is sent from Mass Action Email Reminder, notify user
             $vars = array(':recordID' => $recordID);
-            $strSQL = "SELECT rec.userID, rec.serviceID, ser.service, rec.title, rec.lastStatus ".
+            $strSQL = "SELECT rec.userID, rec.serviceID, ser.service, rec.title, c.categoryName, rec.lastStatus ".
                 "FROM records AS rec ".
                     "LEFT JOIN services AS ser USING (serviceID) ".
-                "WHERE recordID=:recordID AND (active=1 OR active IS NULL)";
+                    "LEFT JOIN category_count AS cc USING (recordID) ".
+                    "LEFT JOIN categories AS c USING (categoryID) ".
+                    "WHERE recordID=:recordID AND (active=1 OR active IS NULL)";
             $recordInfo = $this->portal_db->prepared_query($strSQL, $vars);
 
             $title = strlen($recordInfo[0]['title']) > 45 ? substr($recordInfo[0]['title'], 0, 42) . '...' : $recordInfo[0]['title'];
@@ -720,7 +725,8 @@ class Email
                 "recordID" => $recordID,
                 "service" => $recordInfo[0]['service'],
                 "lastStatus" => $recordInfo[0]['lastStatus'],
-                "siteRoot" => $this->siteRoot
+                "siteRoot" => $this->siteRoot,
+                "formName" => $recordInfo[0]['categoryName']
             ));
 
             $this->setTemplateByID($emailTemplateID);

@@ -800,8 +800,10 @@ class FormWorkflow
             $email = new Email();
 
             $vars = array(':recordID' => $this->recordID);
-            $strSQL = "SELECT rec.title, rec.userID, ser.service FROM records AS rec ".
+            $strSQL = "SELECT rec.title, c.categoryName, rec.userID, ser.service FROM records AS rec ".
                 "LEFT JOIN services AS ser USING (serviceID) ".
+                "LEFT JOIN category_count AS cc USING (recordID) ".
+                "LEFT JOIN categories AS c USING (categoryID) ".
                 "WHERE recordID=:recordID";
             $record = $this->db->prepared_query($strSQL, $vars);
 
@@ -818,7 +820,8 @@ class FormWorkflow
                 "service" => $record[0]['service'],
                 "stepTitle" => $groupName[0]['stepTitle'],
                 "comment" => $comment,
-                "siteRoot" => $this->siteRoot
+                "siteRoot" => $this->siteRoot,
+                "formName" => $record[0]['categoryName']
             ));
             $email->setTemplateByID(\Email::SEND_BACK);
 
@@ -896,9 +899,11 @@ class FormWorkflow
                     $email = new Email();
 
                     $vars = array(':recordID' => $this->recordID);
-                    $strSQL = "SELECT rec.title, rec.lastStatus, rec.userID, ser.service ".
+                    $strSQL = "SELECT rec.title, c.categoryName, rec.lastStatus, rec.userID, ser.service ".
                         "FROM records AS rec ".
                         "LEFT JOIN services AS ser USING (serviceID) ".
+                        "LEFT JOIN category_count AS cc USING (recordID) ".
+                        "LEFT JOIN categories AS c USING (categoryID) ".
                         "WHERE recordID=:recordID";
                     $approvers = $this->db->prepared_query($strSQL, $vars);
 
@@ -911,7 +916,8 @@ class FormWorkflow
                         "service" => $approvers[0]['service'],
                         "lastStatus" => $approvers[0]['lastStatus'],
                         "comment" => $comment,
-                        "siteRoot" => $this->siteRoot
+                        "siteRoot" => $this->siteRoot,
+                        "formName" => $approvers[0]['categoryName']
                     ));
                     $email->setTemplateByID(\Email::NOTIFY_COMPLETE);
 
@@ -945,9 +951,11 @@ class FormWorkflow
                     $email = new Email();
 
                     $vars = array(':recordID' => $this->recordID);
-                    $strSQL = "SELECT rec.title, rec.lastStatus, rec.userID, ser.service ".
+                    $strSQL = "SELECT rec.title, c.categoryName, rec.lastStatus, rec.userID, ser.service ".
                         "FROM records AS rec ".
                         "LEFT JOIN services AS ser USING (serviceID) ".
+                        "LEFT JOIN category_count AS cc USING (recordID) ".
+                        "LEFT JOIN categories AS c USING (categoryID) ".
                         "WHERE recordID=:recordID";
                     $approvers = $this->db->prepared_query($strSQL, $vars);
 
@@ -960,7 +968,8 @@ class FormWorkflow
                         "service" => $approvers[0]['service'],
                         "lastStatus" => $approvers[0]['lastStatus'],
                         "comment" => $comment,
-                        "siteRoot" => $this->siteRoot
+                        "siteRoot" => $this->siteRoot,
+                        "formName" => $approvers[0]['categoryName']
                     ));
 
                     $emailTemplateID = $email->getTemplateIDByLabel($event['eventDescription']);
