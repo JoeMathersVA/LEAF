@@ -18,20 +18,18 @@ services:
     # ports:
     #   - 80:80
     #   - 443:443
-    links:
-      - mysql.leaf-portal
+    # links:
+    #   - mysql.leaf-portal
     volumes:
       - ../LEAF_Nexus:/var/www/html/LEAF_Nexus
       - ../LEAF_Request_Portal:/var/www/html/LEAF_Request_Portal
       - ../health_checks:/var/www/html/health_checks
-      - ../libs:/var/www/html/libs
+      - leaf-lib:/var/www/html/libs
       - ../test:/var/www/html/test
       # - ./docker/php/conf.d/xdebug.ini
     networks:
-      traefik:
-      code-network:
-        aliases:
-          - php
+      - proxy
+      - leaf-sql
     environment:
       - REMOTE_USER=${REMOTE_USER}
       - APACHE_RUN_USER=build_user
@@ -77,53 +75,54 @@ services:
       - "3306:3306"
     restart: 'always'
     networks:
-      code-network:
-        aliases:
-          - mysql
+      - leaf-sql
 
-  smtp.leaf-portal:
-    image: kurzdigital/fake-smtp # https://hub.docker.com/r/kurzdigital/fake-smtp/
-    container_name: leaf_smtp
-    env_file: 
-      - ./env_files/globals_local.env
-      - ./env_files/secrets.env
-    ports:
-      - "2525:25" # smtp port
-      - "5080:5080" # web ui port
-    restart: 'always'
-    networks:
-      traefik:
-      code-network:      
-    labels:          
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.services.leaf_smtp.loadbalancer.server.port=5080"
-      - "traefik.http.routers.leaf_smtp.rule=Host(`smtp.dev.vovina-tisa.net`)"
-      - "traefik.http.routers.leaf_smtp.entrypoints=web, web-secure"
-      - "traefik.http.routers.leaf_smtp.tls.certresolver=dev_http"
+  # smtp.leaf-portal:
+  #   image: kurzdigital/fake-smtp # https://hub.docker.com/r/kurzdigital/fake-smtp/
+  #   container_name: leaf_smtp
+  #   env_file: 
+  #     - ./env_files/globals_local.env
+  #     - ./env_files/secrets.env
+  #   ports:
+  #     - "2525:25" # smtp port
+  #     - "5080:5080" # web ui port
+  #   restart: 'always'
+  #   networks:
+  #     traefik:
+  #     code-network:      
+  #   labels:          
+  #     - "traefik.enable=true"
+  #     - "traefik.docker.network=traefik"
+  #     - "traefik.http.services.leaf_smtp.loadbalancer.server.port=5080"
+  #     - "traefik.http.routers.leaf_smtp.rule=Host(`smtp.dev.vovina-tisa.net`)"
+  #     - "traefik.http.routers.leaf_smtp.entrypoints=web, web-secure"
+  #     - "traefik.http.routers.leaf_smtp.tls.certresolver=dev_http"
 
-  leaf_adminer:
-    container_name: leaf_adminer
-    image: adminer
-    ports:
-        - 3388:8080
-    networks:
-        - code-network      
-        - traefik    
-    labels:          
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik"
-      - "traefik.http.services.leaf_adminer.loadbalancer.server.port=8080"
-      - "traefik.http.routers.leaf_adminer.rule=Host(`leaf-adminer.dev.vovina-tisa.net`)"
-      - "traefik.http.routers.leaf_adminer.entrypoints=web, web-secure"
-      - "traefik.http.routers.leaf_adminer.tls.certresolver=dev_http"
+  # leaf_adminer:
+  #   container_name: leaf_adminer
+  #   image: adminer
+  #   ports:
+  #       - 3388:8080
+  #   networks:
+  #       - code-network      
+  #       - traefik    
+  #   labels:          
+  #     - "traefik.enable=true"
+  #     - "traefik.docker.network=traefik"
+  #     - "traefik.http.services.leaf_adminer.loadbalancer.server.port=8080"
+  #     - "traefik.http.routers.leaf_adminer.rule=Host(`leaf-adminer.dev.vovina-tisa.net`)"
+  #     - "traefik.http.routers.leaf_adminer.entrypoints=web, web-secure"
+  #     - "traefik.http.routers.leaf_adminer.tls.certresolver=dev_http"
 
 volumes:
   leaf-php-data:
+    external: true
+  leaf-lib:
+    external: true
 
 
 networks:
-  code-network:
-    driver: bridge
-  traefik:
-      external: true
+  leaf-sql:
+    external: true
+  proxy:
+    external: true
