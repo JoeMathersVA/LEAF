@@ -12,18 +12,19 @@
 */
 
 // require '../../../db_config.php';
+require './globals.php';
 
 ini_set('display_errors', 0); // Set to 1 to display errors
 
 class DB_Config
 {
-    public $dbHost = 'SERVER_HOSTNAME';
+    public $dbHost = DATABASE_HOST;
 
-    public $dbName = 'DATABASE_NAME';
+    public $dbName = DATABASE_DB;
 
-    public $dbUser = 'DATABASE_USERNAME';
+    public $dbUser = DATABASE_USER;
 
-    public $dbPass = 'DATABASE_PASSWORD';
+    public $dbPass = DATABASE_PASS;
 }
 
 class Config

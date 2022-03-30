@@ -2,16 +2,15 @@
 const PRODUCT_NAME = 'VA Light Electronic Action Framework';
 const VERSION_NUMBER = '4.0.0';
 
-const DIRECTORY_HOST = 'HOSTNAME';
-const DIRECTORY_DB = 'DB_NAME';
-const DIRECTORY_USER = 'USERNAME';
-const DIRECTORY_PASS = 'PASSWORD';
+define('DATABASE_HOST', getenv('MYSQL_ROOT_HOST', true) ?: getenv('DATABASE_HOST'));
+define('DATABASE_DB', getenv('MYSQL_DB', true) ?: getenv('DATABASE_DB'));
+define('DATABASE_USER', getenv('MYSQL_USER', true) ?: getenv('DATABASE_USER'));
+define('DATABASE_PASS', getenv('MYSQL_PASSWORD', true) ?: getenv('DATABASE_PASS'));
 
-const LEAF_NEXUS_URL = 'https://www.example.com/'; // trailing slash required
-const HTTP_HOST = 'www.example.com';
+define('LEAF_NEXUS_URL', getenv('APP_URL_NEXUS', true) ?: getenv('LEAF_NEXUS_URL'));
+define('HTTP_HOST', getenv('APP_HTTP_HOST', true) ?: getenv('HTTP_HOST'));
 
-const AUTH_URL = 'example.com/auth';
+define('AUTH_URL', getenv('APP_URL_AUTH', true) ?: getenv('AUTH_URL'));
+define('AUTH_TYPE', getenv('APP_AUTH_TYPE', true) ?: getenv('AUTH_TYPE'));
 
-const AUTH_TYPE = 'cookie';
-
-const CIPHER_KEY = 'example-key';
+define('CIPHER_KEY', getenv('APP_CIPHER_KEY', true) ?: getenv('CIPHER_KEY'));

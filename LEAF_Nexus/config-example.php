@@ -12,6 +12,7 @@
 */
 
 // require '../../../config.php';
+require './globals.php';
 
 namespace Orgchart;
 
@@ -34,11 +35,11 @@ class Config
 
     public static $ERM_Sites = array('resource_management' => ''); // URL to ERM sites with trailing slash
 
-    public $dbHost = 'SERVER_HOSTNAME';
+    public $dbHost = DATABASE_HOST;
 
-    public $dbName = 'DATABASE_NAME';
+    public $dbName = DATABASE_DB;
 
-    public $dbUser = 'DATABASE_USERNAME';
+    public $dbUser = DATABASE_USER;
 
-    public $dbPass = 'DATABASE_PASSWORD';
+    public $dbPass = DATABASE_PASS;
 }
