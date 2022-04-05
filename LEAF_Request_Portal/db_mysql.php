@@ -18,6 +18,8 @@ class DB
 
     private $dbUser;
 
+    private $query; // last PDO statement
+
     private $log = array('<span style="color: red">Debug Log is ON</span>');    // error log for debugging
 
     private $debug = false;             // Are we debugging?
@@ -59,7 +61,6 @@ class DB
             }
             $this->isConnected = false;
         }
-        // $this->checkLastModified();
         unset($pass);
     }
 
@@ -90,7 +91,8 @@ class DB
             echo '<hr />';
             echo "</pre><br />Time: {$this->time} sec<br />";
         }
-        $this->db->query('KILL CONNECTION_ID()');
+
+        $this->query = null;
         $this->db = null;
     }
 
@@ -152,8 +154,8 @@ class DB
             $this->log[] = $sql;
             if ($this->debug >= 2)
             {
-                $query = $this->db->query('EXPLAIN ' . $sql);
-                $this->log[] = $query->fetchAll(PDO::FETCH_ASSOC);
+                $this->query = $this->db->query('EXPLAIN ' . $sql);
+                $this->log[] = $this->query->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
@@ -179,7 +181,7 @@ class DB
             $this->limit = '';
         }
 
-        $query = null;
+        $this->query = null;
 
         $time1 = microtime(true);
         if ($this->debug)
@@ -189,16 +191,16 @@ class DB
             $this->log[] = $q;
             if ($this->debug >= 2)
             {
-                $query = $this->db->prepare('EXPLAIN ' . $sql);
-                $query->execute($vars);
-                $this->log[] = $query->fetchAll(PDO::FETCH_ASSOC);
+                $this->query = $this->db->prepare('EXPLAIN ' . $sql);
+                $this->query->execute($vars);
+                $this->log[] = $this->query->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
         if ($dry_run == false && $this->dryRun == false)
         {
-            $query = $this->db->prepare($sql);
-            $query->execute($vars);
+            $this->query = $this->db->prepare($sql);
+            $this->query->execute($vars);
         }
         else
         {
@@ -210,7 +212,7 @@ class DB
             $this->time += microtime(true) - $time1;
         }
 
-        return $query->fetchAll(PDO::FETCH_ASSOC);
+        return $this->query->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -268,6 +270,11 @@ class DB
     public function getLastInsertID()
     {
         return $this->db->lastInsertId();
+    }
+
+    public function getAffectedRowCount()
+    {
+        return $this->query->rowCount();
     }
 
     public function isConnected()

@@ -4,9 +4,8 @@
  */
 
 /*
-    Generic database access for MySQL databases
-    Date: September 4, 2007
-
+    db_mysql is a convienience layer
+    Date Created: September 4, 2007
  */
 
 class DB
@@ -18,6 +17,8 @@ class DB
     private $dbName;
 
     private $dbUser;
+
+    private $query; // last PDO statement
 
     private $log = array('<span style="color: red">Debug Log is ON</span>');    // error log for debugging
 
@@ -152,8 +153,8 @@ class DB
             $this->log[] = $sql;
             if ($this->debug >= 2)
             {
-                $query = $this->db->query('EXPLAIN ' . $sql);
-                $this->log[] = $query->fetchAll(PDO::FETCH_ASSOC);
+                $this->query = $this->db->query('EXPLAIN ' . $sql);
+                $this->log[] = $this->query->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
@@ -179,7 +180,7 @@ class DB
             $this->limit = '';
         }
 
-        $query = null;
+        $this->query = null;
 
         $time1 = microtime(true);
         if ($this->debug)
@@ -189,16 +190,16 @@ class DB
             $this->log[] = $q;
             if ($this->debug >= 2)
             {
-                $query = $this->db->prepare('EXPLAIN ' . $sql);
-                $query->execute($vars);
-                $this->log[] = $query->fetchAll(PDO::FETCH_ASSOC);
+                $this->query = $this->db->prepare('EXPLAIN ' . $sql);
+                $this->query->execute($vars);
+                $this->log[] = $this->query->fetchAll(PDO::FETCH_ASSOC);
             }
         }
 
         if ($dry_run == false && $this->dryRun == false)
         {
-            $query = $this->db->prepare($sql);
-            $query->execute($vars);
+            $this->query = $this->db->prepare($sql);
+            $this->query->execute($vars);
         }
         else
         {
@@ -210,7 +211,7 @@ class DB
             $this->time += microtime(true) - $time1;
         }
 
-        return $query->fetchAll(PDO::FETCH_ASSOC);
+        return $this->query->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -270,6 +271,11 @@ class DB
         return $this->db->lastInsertId();
     }
 
+    public function getAffectedRowCount()
+    {
+        return $this->query->rowCount();
+    }
+
     public function isConnected()
     {
         return $this->isConnected;
@@ -293,5 +299,25 @@ class DB
     public function enableDryRun()
     {
         $this->dryRun = true;
+    }
+
+    private function checkLastModified() {
+        //get the last build time
+        $defaultTime = "Thur, January 1, 1970 00:00:00 GMT";
+        $lastBuildTime = getenv('LAST_BUILD_DATE', true) ? getenv('LAST_BUILD_DATE') : $defaultTime;
+
+        // set last-modified header
+        // header('Cache-Control: no-cache, must-revalidate');
+        header('Last-Modified: ' . $lastBuildTime );
+
+        // Check if last build time is exactly the same (if so, use cache)
+        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+            if ($lastBuildTime === $_SERVER['HTTP_IF_MODIFIED_SINCE']) {
+                http_response_code(304);
+                header('X-MODIFIED-SINCE: MATCH');
+                die();
+            }
+        }
+        header('X-CONTENT-RETURN: YES');
     }
 }
