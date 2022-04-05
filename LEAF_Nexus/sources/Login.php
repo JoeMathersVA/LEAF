@@ -46,12 +46,12 @@ class Session implements \SessionHandlerInterface
         }
     }
 
-    public function close()
+    public function close(): bool
     {
         return true;
     }
 
-    public function destroy($sessionID)
+    public function destroy($sessionID): bool
     {
         $vars = array(':sessionID' => $sessionID);
         $this->db->prepared_query('DELETE FROM sessions
@@ -60,21 +60,21 @@ class Session implements \SessionHandlerInterface
         return true;
     }
 
-    public function gc($maxLifetime)
+    public function gc($maxLifetime): int
     {
         $vars = array(':time' => time() - $maxLifetime);
         $this->db->prepared_query('DELETE FROM sessions
                                             WHERE lastModified < :time', $vars);
 
-        return true;
+        return $this->db->getAffectedRowCount();
     }
 
-    public function open($savePath, $sessionID)
+    public function open($savePath, $sessionID): bool
     {
         return true;
     }
 
-    public function read($sessionID)
+    public function read($sessionID): string
     {
         $vars = array(':sessionID' => $sessionID);
         $res = $this->db->prepared_query('SELECT * FROM sessions
@@ -83,7 +83,7 @@ class Session implements \SessionHandlerInterface
         return isset($res[0]['data']) ? $res[0]['data'] : '';
     }
 
-    public function write($sessionID, $data)
+    public function write($sessionID, $data): bool
     {
         $vars = array(':sessionID' => $sessionID,
                       ':data' => $data,
