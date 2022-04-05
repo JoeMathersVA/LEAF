@@ -52,6 +52,7 @@ function customTemplate($tpl)
 
 $t_login->assign('name', XSSHelpers::xscrub($login->getName()));
 $t_menu->assign('is_admin', $login->checkGroup(1));
+$t_menu->assign('hide_main_control', false); // Backward compat
 
 $main->assign('useUI', false);
 $main->assign('userID', $login->getUserID());
@@ -533,6 +534,12 @@ switch ($action) {
         $t_form->assign('is_admin', (int)$login->checkGroup(1));
         $t_form->assign('orgchartPath', Config::$orgchartPath);
         $t_form->assign('CSRFToken', $_SESSION['CSRFToken']);
+
+        $qrcodeURL = "https://" . HTTP_HOST . $_SERVER['REQUEST_URI'];
+        $main->assign('qrcodeURL', urlencode($qrcodeURL));
+        $main->assign('emergency', '');
+        $main->assign('status', '');
+        $main->assign('hideFooter', '');
 
         $t_form->assign('tpl_search', customTemplate('view_search.tpl'));
 
