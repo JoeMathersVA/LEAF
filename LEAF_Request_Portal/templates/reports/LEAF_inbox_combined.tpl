@@ -1,17 +1,21 @@
 <script src="../libs/js/sha1.js"></script>
+<script src="https://leaf.va.gov/launchpad/files/intervalQueue.js"></script>
 <script>
     let CSRFToken = '<!--{$CSRFToken}-->';
 
     /**
-     * This is the section of the script where you add the LEAF's you want added to this combined inbox.
+     * This script creates a combined inbox of multiple LEAF sites.
+     * 
+     * You may configure the sites that will be loaded in the "sites" variable.
+     * 
+     * Additionally, each site may be configured with the following custom properties:
      * - url: Define the full url with backslash at end.
      * - name: Title of the LEAF in the combined inbox.
-     * - fontColor: Color of title font.
-     * - icon: Icon you would like next to the name of the inbox.
+     * - backgroundColor: Background color of the site's section
+     * - fontColor: Font color of the site's title
+     * - icon: (Optional) This is an image used to represent the site's section, sourced from the
      *      Icon Repository: https://leaf.va.gov/libs/dynicons/gallery.php
      * - nonadmin: Set to true if you want Admins to see only their own info and not all requests
-     * Find the Icon you want to use and copy its .svg name and simply put it into the icon: field below.
-     * To add multiple sites just copy template from the brackets and comma like Demo 2 { },
      */
     let sites = [
         {
@@ -42,7 +46,7 @@
             }
         }
         $('#loading').slideUp();
-        $('#inboxContainer').fadeIn();
+        $('.inbox').fadeIn();
     }
 
     // Get site icons and name
@@ -92,87 +96,96 @@
         formGrid.setDataBlob(res);
         formGrid.hideIndex();
         formGrid.setHeaders([
-            {name: 'UID', indicatorID: 'uid', editable: false, callback: function(data, blob) {
-            $('#'+data.cellContainerID).html('<a href="'+ site.url +'?a=printview&recordID=' + data.recordID + '">'+ data.recordID +'</a>');
-            }}
+            {
+                name: 'UID', indicatorID: 'uid', editable: false, callback: function (data, blob) {
+                    $('#' + data.cellContainerID).html('<a href="' + site.url + '?a=printview&recordID=' + data.recordID + '">' + data.recordID + '</a>');
+                }
+            }
             ,
-            {name: 'Type', indicatorID: 'type', editable: false, callback: function(data, blob) {
-            let categoryNames = '';
-            if(blob[depID]['records'][data.recordID].categoryNames != undefined) {
-                categoryNames = blob[depID]['records'][data.recordID].categoryNames.replace(' | ', ', ');
-            }
-            else {
-                categoryNames = '<span style="color: #ff0000">Warning: This request is based on an old or deleted form.</span>';
-            }
-            $('#' + data.cellContainerID).html(categoryNames);
-            $('#' + data.cellContainerID).attr('tabindex', '0');
-            }
-            },
-            {name: 'Service', indicatorID: 'service', editable: false, callback: function(data, blob) {
-            $('#'+data.cellContainerID).html(blob[depID]['records'][data.recordID].service);
-            $('#'+data.cellContainerID).attr('tabindex', '0');
-            }},
-            {name: 'Title', indicatorID: 'title', editable: false, callback: function(data, blob) {
-            $('#'+data.cellContainerID).attr('tabindex', '0');
-            $('#'+data.cellContainerID).attr('aria-label', blob[depID]['records'][data.recordID].title);
-            $('#'+data.cellContainerID).html('<a href="index.php?a=printview&recordID='+ data.recordID + '" target="_blank">'
-                + blob[depID]['records'][data.recordID].title + '</a>'
-                + ' <button id="'+ data.cellContainerID +'_preview" class="buttonNorm">Quick View</button>'
-                + '<div id="inboxForm'+ hash +'_' + depID + '_' + data.recordID +'" style="background-color: white; display: none; height: 300px; overflow: scroll"></div>');
-            $('#'+data.cellContainerID + '_preview').on('click', function() {
-            $('#'+data.cellContainerID + '_preview').hide();
-            if($('#inboxForm'+ hash +'_'+depID+'_'+data.recordID).html() == '') {
-                $('#inboxForm'+ hash +'_'+depID+'_'+data.recordID).html('Loading...');
-                $('#inboxForm'+ hash +'_'+depID+'_'+data.recordID).slideDown();
-                $.ajax({
-                    type: 'GET',
-                    url: site.url + 'ajaxIndex.php?a=printview&recordID=' + data.recordID,
-                    success: function(res) {
-                     $('#inboxForm'+ hash +'_'+depID+'_'+data.recordID).html(res);
-                     $('#inboxForm'+ hash +'_'+depID+'_'+data.recordID).slideDown();
-                     $('#requestTitle').attr('tabindex', '0');
-                     $('#requestInfo').attr('tabindex', '0');
+            {
+                name: 'Type', indicatorID: 'type', editable: false, callback: function (data, blob) {
+                    let categoryNames = '';
+                    if (blob[depID]['records'][data.recordID].categoryNames != undefined) {
+                        categoryNames = blob[depID]['records'][data.recordID].categoryNames.replace(' | ', ', ');
                     }
-                })
-            }
-            })
-            }
-            },
-            {name: 'Status', indicatorID: 'currentStatus', editable: false, callback: function(data, blob) {
-                let listRecord = blob[depID]['records'][data.recordID];
-                let cellContainer = $('#'+data.cellContainerID);
-                let waitText = listRecord.blockingStepID == 0 ? 'Pending ' : 'Waiting for ';
-                let status = '';
-                if(listRecord.stepID == null && listRecord.submitted == '0') {
-                    status = '<span style="color: #e00000">Not Submitted</span>';
-                }
-                else if(listRecord.stepID == null) {
-                    let lastStatus = listRecord.lastStatus;
-                    if(lastStatus == '') {
-                        lastStatus = '<a href="index.php?a=printview&recordID='+ data.recordID +'">Check Status</a>';
+                    else {
+                        categoryNames = '<span style="color: #ff0000">Warning: This request is based on an old or deleted form.</span>';
                     }
-                    status = '<span style="font-weight: bold">' + lastStatus + '</span>';
+                    $('#' + data.cellContainerID).html(categoryNames);
+                    $('#' + data.cellContainerID).attr('tabindex', '0');
                 }
-                else {
-                    status = waitText + listRecord.stepTitle;
+            },
+            {
+                name: 'Service', indicatorID: 'service', editable: false, callback: function (data, blob) {
+                    $('#' + data.cellContainerID).html(blob[depID]['records'][data.recordID].service);
+                    $('#' + data.cellContainerID).attr('tabindex', '0');
                 }
+            },
+            {
+                name: 'Title', indicatorID: 'title', editable: false, callback: function (data, blob) {
+                    $('#' + data.cellContainerID).attr('tabindex', '0');
+                    $('#' + data.cellContainerID).attr('aria-label', blob[depID]['records'][data.recordID].title);
+                    $('#' + data.cellContainerID).html('<a href="'+ site.url +'index.php?a=printview&recordID=' + data.recordID + '" target="_blank">'
+                        + blob[depID]['records'][data.recordID].title + '</a>'
+                        + ' <button id="' + data.cellContainerID + '_preview" class="buttonNorm">Quick View</button>'
+                        + '<div id="inboxForm' + hash + '_' + depID + '_' + data.recordID + '" style="background-color: white; display: none; height: 300px; overflow: scroll"></div>');
+                    $('#' + data.cellContainerID + '_preview').on('click', function () {
+                        $('#' + data.cellContainerID + '_preview').hide();
+                        if ($('#inboxForm' + hash + '_' + depID + '_' + data.recordID).html() == '') {
+                            $('#inboxForm' + hash + '_' + depID + '_' + data.recordID).html('Loading...');
+                            $('#inboxForm' + hash + '_' + depID + '_' + data.recordID).slideDown();
+                            $.ajax({
+                                type: 'GET',
+                                url: site.url + 'ajaxIndex.php?a=printview&recordID=' + data.recordID,
+                                success: function (res) {
+                                    $('#inboxForm' + hash + '_' + depID + '_' + data.recordID).html(res);
+                                    $('#inboxForm' + hash + '_' + depID + '_' + data.recordID).slideDown();
+                                    $('#requestTitle').attr('tabindex', '0');
+                                    $('#requestInfo').attr('tabindex', '0');
+                                }
+                            })
+                        }
+                    })
+                }
+            },
+            {
+                name: 'Status', indicatorID: 'currentStatus', editable: false, callback: function (data, blob) {
+                    let listRecord = blob[depID]['records'][data.recordID];
+                    let cellContainer = $('#' + data.cellContainerID);
+                    let waitText = listRecord.blockingStepID == 0 ? 'Pending ' : 'Waiting for ';
+                    let status = '';
+                    if (listRecord.stepID == null && listRecord.submitted == '0') {
+                        status = '<span style="color: #e00000">Not Submitted</span>';
+                    }
+                    else if (listRecord.stepID == null) {
+                        let lastStatus = listRecord.lastStatus;
+                        if (lastStatus == '') {
+                            lastStatus = '<a href="index.php?a=printview&recordID=' + data.recordID + '">Check Status</a>';
+                        }
+                        status = '<span style="font-weight: bold">' + lastStatus + '</span>';
+                    }
+                    else {
+                        status = waitText + listRecord.stepTitle;
+                    }
 
-                if(listRecord.deleted > 0) {
-                    status += ', Cancelled';
-                }
+                    if (listRecord.deleted > 0) {
+                        status += ', Cancelled';
+                    }
 
-                cellContainer.html(status).attr('tabindex', '0').attr('aria-label', status);
-                if(listRecord.userID == '<!--{$userID}-->') {
-                    cellContainer.css('background-color', '#feffd1');
+                    cellContainer.html(status).attr('tabindex', '0').attr('aria-label', status);
+                    if (listRecord.userID == '<!--{$userID}-->') {
+                        cellContainer.css('background-color', '#feffd1');
+                    }
                 }
-            }},
-            {name: 'Action', indicatorID: 'action', editable: false, sortable: false, callback: function(data, blob) {
-            let depDescription = 'Take Action';
-            $('#'+data.cellContainerID).html('<button id="btn_action'+ hash +'_'+depID+'_'+data.recordID + '" class="buttonNorm" style="text-align: center; font-weight: bold; white-space: normal">'+ depDescription +'</button>');
-            $('#btn_action'+ hash +'_'+depID+'_'+data.recordID).on('click', function() {
-            loadWorkflow(data.recordID, depID, formGrid.getPrefixID(), site.url);
-            })
-            }
+            },
+            {
+                name: 'Action', indicatorID: 'action', editable: false, sortable: false, callback: function (data, blob) {
+                    let depDescription = 'Take Action';
+                    $('#' + data.cellContainerID).html('<button id="btn_action' + hash + '_' + depID + '_' + data.recordID + '" class="buttonNorm" style="text-align: center; font-weight: bold; white-space: normal">' + depDescription + '</button>');
+                    $('#btn_action' + hash + '_' + depID + '_' + data.recordID).on('click', function () {
+                        loadWorkflow(data.recordID, depID, formGrid.getPrefixID(), site.url);
+                    })
+                }
             }
         ])
         let tGridData = [];
@@ -205,20 +218,18 @@
         let siteURL = site + './api/?a=inbox/dependency/_';
 
         if (nonadmin) {
-            siteURL += '/nonadmin';
+            siteURL += '&masquerade=nonAdmin';
         }
-        $.ajax({
+        return $.ajax({
             type: 'GET',
             url: siteURL,
             success: function (res) {
                 dataInboxes[site] = res;
-                sitesLoaded.push(site);
             },
             error: function (err) {
                 alert('Error: ' + err.statusText);
             },
-            cache: false,
-            timeout: 5000
+            cache: false
         });
     }
 
@@ -236,102 +247,83 @@
         dialog_message.show();
     }
 
-    // Polyfill for IE
-    if (typeof Object.assign != 'function') {
-        // Must be writable: true, enumerable: false, configurable: true
-        Object.defineProperty(Object, "assign", {
-            value: function assign(target, varArgs) { // .length of function is 2
-                'use strict';
-                if (target == null) { // TypeError if undefined or null
-                    throw new TypeError('Cannot convert undefined or null to object');
-                }
-                let to = Object(target);
-                for (let index = 1; index < arguments.length; index++) {
-                    let nextSource = arguments[index];
-                    if (nextSource != null) { // Skip over if undefined or null
-                        for (let nextKey in nextSource) {
-                            // Avoid bugs when hasOwnProperty is shadowed
-                            if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-                                to[nextKey] = nextSource[nextKey];
-                            }
-                        }
-                    }
-                }
-                return to;
-            },
-            writable: true,
-            configurable: true
-        });
-    }
     let dialog_message;
     // Script Start
     $(function () {
         dialog_message = new dialogController('genericDialog', 'genericDialogxhr', 'genericDialogloadIndicator', 'genericDialogbutton_save', 'genericDialogbutton_cancelchange');
-        sites.forEach(function (site) {
-            loadInboxData(site.url, site.nonadmin);
+
+        let progressbar = $('#progressbar').progressbar();
+        $('#progressbar').progressbar('option', 'max', Object.keys(sites).length);
+        let queue = new intervalQueue();
+        queue.setWorker(site => {
+            $('#progressbar').progressbar('option', 'value', queue.getLoaded());
+            $('#progressDetail').html(`Loading inbox: ${site.name}...`);
+            return loadInboxData(site.url, site.nonadmin);
         });
-        let checkLoaded = setInterval(function () {
-            if (sitesLoaded.length == sites.length) {
-                clearInterval(checkLoaded);
-                renderInbox();
-                $('#btn_expandAll').on('click', function () {
-                    $('.depInbox').click();
-                    if ($('#btn_expandAll').html() == 'Expand all sections') {
-                        $('#btn_expandAll').html('Hide all sections');
-                    } else {
-                        $('#btn_expandAll').html('Expand all sections');
-                    }
-                });
-            }
-        }, 250);
-        setInterval(function () {
-            let scrollPos = $(window).scrollTop();
-            if (scrollPos > 120) {
-                $('#index').css({
-                    'position': 'absolute',
-                    'top': scrollPos
-                });
+        queue.onComplete(() => {
+            $('#progressContainer').slideUp();
+            renderInbox();
+        });
+
+        sites.forEach(site => queue.push(site));
+
+        queue.start();
+
+        $('#btn_expandAll').on('click', function () {
+            $('.depInbox').click();
+            if ($('#btn_expandAll').html() == 'Expand all sections') {
+                $('#btn_expandAll').html('Hide all sections');
             } else {
-                $('#index').css({
-                    'position': 'inline',
-                    'top': 120
-                });
+                $('#btn_expandAll').html('Expand all sections');
             }
-        }, 100);
+        });
+
         $('#headerTab').html('My Inbox');
     });
 </script>
 <style>
-    /*responsive grid*/
-    .group:after, .section{clear:both}.section{padding:0;margin:0}.col{display:block;float:left;margin:1% 0 1% 1.6%}.col:first-child{margin-left:0}.group:after, .group:before{content:"";display:table}.group{zoom:1}.span_4_of_4{width:100%}.span_3_of_4{width:74.6%}.span_2_of_4{width:49.2%}.span_1_of_4
-
-    {width:23.8%}@media only screen and (max-width: 480px)
-
-    {.col{margin:1% 0}.span_1_of_4,.span_2_of_4,.span_3_of_4,.span_4_of_4{width:100%}}
+    #inboxContainer {
+		display: grid;
+        grid-template-columns: min-content 1fr;
+        grid-column-gap: 1rem;
+    }
+    #index {
+        position: sticky;
+        top: 0;
+        margin-top: 25px;
+        overflow-y: auto;
+        max-height: 75vh;
+        width: 20vw;
+        background-color: white;
+        border: 1px solid black;
+        padding: 1rem;
+    }
+    .inbox {
+        display: none;
+    }
 </style>
 <div id="genericDialog" style="visibility: hidden; display: none">
     <div>
         <div id="genericDialogbutton_cancelchange" style="display: none"></div>
         <div id="genericDialogbutton_save" style="display: none"></div>
         <div id="genericDialogloadIndicator"
-             style="visibility: hidden; z-index: 9000; position: absolute; text-align: center; font-size: 24px; font-weight: bold; background-color: #f2f5f7; padding: 16px; height: 400px; width: 526px">
-            <img src="images/largespinner.gif" alt="loading..."/></div>
-        <div id="genericDialogxhr"
-             style="width: 540px; height: 420px; padding: 8px; overflow: auto; font-size: 12px"></div>
+            style="visibility: hidden; z-index: 9000; position: absolute; text-align: center; font-size: 24px; font-weight: bold; background-color: #f2f5f7; padding: 16px; height: 400px; width: 526px">
+            <img src="images/largespinner.gif" alt="loading..." />
+        </div>
+        <div id="genericDialogxhr" style="width: 540px; height: 420px; padding: 8px; overflow: auto; font-size: 12px">
+        </div>
     </div>
 </div>
-<div id="loading" class="card" style="text-align: center; padding: 16px; font-size: 140%"><img
-            src="images/largespinner.gif" alt="loading indicator" style="vertical-align: middle"/> Loading...
+<div id="progressContainer" style="width: 50%; border: 1px solid black; background-color: white; margin: auto; padding: 16px">
+    <h1 style="text-align: center">Loading...</h1>
+    <div id="progressbar"></div>
+    <h2 id="progressDetail" style="text-align: center"></h2>
 </div>
-<div id="inboxContainer" style="display: none">
-    <button id="btn_expandAll" class="buttonNorm" style="float: right">Expand all sections</button>
-    <div class="section group">
-        <div class="col span_1_of_4" style="margin-right: -5%">
-            <div id="index" style="margin-top: 25px">Jump to section:
-                <ul id="indexSites"></ul>
-            </div>
-        </div>
-        <div id="inbox" class="col span_3_of_4">
-        </div>
+<div id="inboxContainer">
+    <div id="index" class="inbox">Jump to section:
+        <ul id="indexSites"></ul>
+    </div>
+    <div id="inbox" class="inbox">
+            <button id="btn_expandAll" class="buttonNorm" style="float: right">Expand all sections</button>
     </div>
 </div>
