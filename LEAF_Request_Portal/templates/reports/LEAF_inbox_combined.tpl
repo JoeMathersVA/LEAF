@@ -100,6 +100,7 @@
             }
         });
         let formGrid = new LeafFormGrid('depList' + hash + '_' + depID);
+        formGrid.setRootURL(site.url);
         formGrid.disableVirtualHeader(); // TODO: figure out why headers aren't sized correctly
         formGrid.setDataBlob(res);
         formGrid.hideIndex();
@@ -213,6 +214,7 @@
         formGrid.setData(tGridData);
         formGrid.sort('recordID', 'desc');
         formGrid.renderBody();
+        //formGrid.loadData(tGridData.map(v => v.recordID).join(','));
         $('#' + formGrid.getPrefixID() + 'table').css('width', '99%');
         $('#' + formGrid.getPrefixID() + 'header_title').css('width', '60%');
         $('#depContainerIndicator_' + depID).css('display', 'none');
@@ -265,7 +267,7 @@
         let queue = new intervalQueue();
         queue.setWorker(site => {
             $('#progressbar').progressbar('option', 'value', queue.getLoaded());
-            $('#progressDetail').html(`Loading inbox: ${site.name}...`);
+            $('#progressDetail').html(`Retrieving records from ${site.name}...`);
             return loadInboxData(site.url, site.nonadmin);
         });
         queue.onComplete(() => {
@@ -279,11 +281,6 @@
 
         $('#btn_expandAll').on('click', function () {
             $('.depInbox').click();
-            if ($('#btn_expandAll').html() == 'Expand all sections') {
-                $('#btn_expandAll').html('Hide all sections');
-            } else {
-                $('#btn_expandAll').html('Expand all sections');
-            }
         });
 
         $('#headerTab').html('My Inbox');
@@ -332,6 +329,6 @@
         <ul id="indexSites"></ul>
     </div>
     <div id="inbox" class="inbox">
-            <button id="btn_expandAll" class="buttonNorm" style="float: right">Expand all sections</button>
+            <button id="btn_expandAll" class="buttonNorm" style="float: right">Toggle sections</button>
     </div>
 </div>
