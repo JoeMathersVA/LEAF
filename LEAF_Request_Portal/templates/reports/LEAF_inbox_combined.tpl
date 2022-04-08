@@ -41,9 +41,17 @@
     // Initiate script and set loading wheel
     function renderInbox() {
         for (let i in sites) {
+            // sort by dependency description
+            let depDesc = {};
             for (let j in dataInboxes[sites[i].url]) {
-                buildDepInbox(dataInboxes[sites[i].url], j, sites[i]);
+                depDesc[dataInboxes[sites[i].url][j].dependencyDesc] = j;
             }
+            let sortedDepDesc = Object.keys(depDesc).sort();
+            
+            sortedDepDesc.forEach(depName => {
+            	let depID = depDesc[depName];
+                buildDepInbox(dataInboxes[sites[i].url], depID, sites[i]);
+            });
         }
         $('#loading').slideUp();
         $('.inbox').fadeIn();
