@@ -1,5 +1,5 @@
 <script src="../libs/js/sha1.js"></script>
-<script src="https://leaf.va.gov/launchpad/files/intervalQueue.js"></script>
+<script src="../libs/js/LEAF/intervalQueue.js"></script>
 <script>
     let CSRFToken = '<!--{$CSRFToken}-->';
 
