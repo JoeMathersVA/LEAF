@@ -179,7 +179,18 @@
                 if(dataInboxes[sites[i].url][j].categoryNames == undefined) {
                     dataInboxes[sites[i].url][j].categoryNames = ['DELETED FORM'];
                 }
-                let categoryName = dataInboxes[sites[i].url][j].categoryNames.join(' | ');
+                
+                // select probable category based on workflow
+                let categoryName = 'DELETED FORM';
+                let tCatIDs = dataInboxes[sites[i].url][j].categoryIDs;
+                for(let k in tCatIDs) {
+                    if(dataWorkflowCategories[tCatIDs[k]] != undefined) {
+                        categoryName = dataInboxes[sites[i].url][j].categoryNames[k];
+                        break;
+                    }
+                }
+                
+                
                 categoryIDs[categoryName] = dataInboxes[sites[i].url][j].categoryIDs;
                 if(depDesc[categoryName] == undefined) {
                     depDesc[categoryName] = [];
@@ -212,7 +223,10 @@
     // Build forms and grids for the inbox's requests and import to html tags
     function buildDepInbox(res, categoryIDs, categoryName, recordIDs, site) {
         let hash = Sha1.hash(site.url);
-        let depID = Sha1.hash(categoryName);
+        if(categoryIDs == undefined) {
+            categoryIDs = ['DELETED FORM'];
+        }
+        let depID = Sha1.hash(categoryIDs.join(','));
 
         let icon = getIcon(site.icon, site.name);
         if (document.getElementById('siteContainer' + hash) == null) {
@@ -314,7 +328,7 @@
     }
     let dataInboxes = {};
     let dataDictionary = {};
-    let sitesLoaded = [];
+    let dataWorkflowCategories = {};
 
     // API Requests for inbox data from each site
     function loadInboxData(site) {
@@ -381,6 +395,18 @@
             dataInboxes[site.url] = res
         });
     }
+    
+    function buildWorkflowCategoryCache(site) {
+        return $.ajax({
+        	type: 'GET',
+            url: site.url + 'api/workflow/categories?x-filterData=categoryID',
+            success: function(res) {
+                res.forEach(w => {
+                    dataWorkflowCategories[w.categoryID] = 1;
+                });
+        	}
+        });
+    }
 
     function loadWorkflow(recordID, prefixID, rootURL) {
         dialog_message.setTitle('Apply Action to #' + recordID);
@@ -407,7 +433,8 @@
         queue.setWorker(site => {
             $('#progressbar').progressbar('option', 'value', queue.getLoaded());
             $('#progressDetail').html(`Retrieving records from ${site.name}...`);
-            return loadInboxData(site);
+            return buildWorkflowCategoryCache(site)
+                .then(() => loadInboxData(site));
         });
         queue.onComplete(() => {
             $('#progressContainer').slideUp();
