@@ -177,11 +177,11 @@
             let categoryIDs = {};
             for (let j in dataInboxes[sites[i].url]) {
                 if(dataInboxes[sites[i].url][j].categoryNames == undefined) {
-                    dataInboxes[sites[i].url][j].categoryNames = ['DELETED FORM'];
+                    dataInboxes[sites[i].url][j].categoryNames = ['DELETED OR INACTIVE FORM'];
                 }
                 
                 // select probable category based on workflow
-                let categoryName = 'DELETED FORM';
+                let categoryName = 'DELETED OR INACTIVE FORM';
                 let tCatIDs = dataInboxes[sites[i].url][j].categoryIDs;
                 for(let k in tCatIDs) {
                     if(dataWorkflowCategories[tCatIDs[k]] != undefined) {
@@ -224,7 +224,7 @@
     function buildDepInbox(res, categoryIDs, categoryName, recordIDs, site) {
         let hash = Sha1.hash(site.url);
         if(categoryIDs == undefined) {
-            categoryIDs = ['DELETED FORM'];
+            categoryIDs = ['DELETED OR INACTIVE FORM'];
         }
         let depID = Sha1.hash(categoryIDs.join(','));
 
