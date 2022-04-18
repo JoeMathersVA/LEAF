@@ -33,6 +33,10 @@ class XSSHelpers
      */
     public static function xssafe($data, $encoding = 'UTF-8')
     {
+        if ($data == null)
+        {
+            return '';
+        }
         return htmlspecialchars($data, ENT_QUOTES | ENT_HTML5, $encoding);
     }
 
@@ -57,8 +61,13 @@ class XSSHelpers
      *
      * @return   string  the sanitized string
      */
-    public static function sanitizer($in, $allowedTags = array(), $encoding = 'UTF-8')
+    public static function sanitizer(string|null $in, $allowedTags = array(), $encoding = 'UTF-8')
     {
+        if ($in == null)
+        {
+            return '';
+        }
+
         $errorReportingLevel = error_reporting(E_ALL ^ E_WARNING);//turn off errors for the next few lines
         // replace linebreaks with <br /> if there's no html <p>'s
         if (strpos($in, '<p>') === false
@@ -242,7 +251,7 @@ class XSSHelpers
      *
      * @return   string  the sanitized string
      */
-    public static function sanitizeHTML($in)
+    public static function sanitizeHTML(string|null $in)
     {
         $allowedTags = array('b', 'i', 'u', 'ol', 'ul', 'li', 'br', 'p', 'table',
                         'td', 'tr', 'thead', 'tbody', 'span', 'strong', 'em',
