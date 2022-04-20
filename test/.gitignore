@@ -3,3 +3,10 @@ LEAF_Nexus_Tests/phinx.yml
 LEAF_Request_Portal_Tests/phinx.yml
 LEAF_Request_Portal_Tests/run_tests_windows.sh
 LEAF_Nexus_Tests/run_tests_windows.sh
+
+
+bin/
+*.class
+.classpath
+.project
+.settings/
