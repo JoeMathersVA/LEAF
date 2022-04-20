@@ -61,7 +61,7 @@ public class homePageTest extends setupFramework {
 	public void verifyPageTitle() /*throws InterruptedException */ {         
 		System.out.println("Page Title Verified");	
 		String pageTitle = driver.getTitle();
-		Assert.assertEquals(pageTitle, "Academy Demo Site (Test site) | Washington DC | Washington DC ERROR", "Page Title does not match expected value");
+		Assert.assertEquals(pageTitle, "Academy Demo Site (Test site) | Washington DC | Washington DC", "Page Title does not match expected value");
 		//AssertJUnit.assertEquals(pageTitle, "Academy Demo Site (Test site) | Washington DC");
 		//JUnit syntax, which I had to modify anyway because it was of type boolean
 	}
