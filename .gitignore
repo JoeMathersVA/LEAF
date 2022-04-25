@@ -35,9 +35,4 @@ LEAF_Request_Portal/UPLOADS
 
 /bin/
 /test-output/
-/.settings/
 *.class
-.classpath
-.project
-.gitconfig
-.config/jgit/config

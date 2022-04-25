@@ -7,9 +7,4 @@ LEAF_Nexus_Tests/run_tests_windows.sh
 
 /bin/
 /test-output/
-/.settings/
 *.class
-.classpath
-.project
-.gitconfig
-.config/jgit/config
