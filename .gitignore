@@ -40,3 +40,4 @@ LEAF_Request_Portal/UPLOADS
 .classpath
 .project
 .gitconfig
+.config/jgit/config

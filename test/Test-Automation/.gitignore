@@ -1,5 +1,8 @@
 /bin/
+/test-output/
+/.settings/
 *.class
 .classpath
 .project
-/.settings/
+.gitconfig
+.config/jgit/config

@@ -12,3 +12,4 @@ LEAF_Nexus_Tests/run_tests_windows.sh
 .classpath
 .project
 .gitconfig
+.config/jgit/config
