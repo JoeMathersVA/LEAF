@@ -5,8 +5,10 @@ LEAF_Request_Portal_Tests/run_tests_windows.sh
 LEAF_Nexus_Tests/run_tests_windows.sh
 
 
-bin/
+/bin/
+/test-output/
+/.settings/
 *.class
 .classpath
 .project
-.settings/
+.gitconfig
